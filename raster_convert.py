@@ -6,6 +6,7 @@ from rasterio.mask import mask
 import numpy as np
 from rasterstats import zonal_stats
 import os
+import pandas as pd
 
 manhattan_map = gpd.read_file("/Users/wenggeiwong/Pollen_Mapping/data/redlining_sfs/manh_holc_sf.json")
 bronx_map = gpd.read_file('/Users/wenggeiwong/Pollen_Mapping/data/redlining_sfs/brx_holc_sf.json')
@@ -45,14 +46,35 @@ def joinData(shapefile,raster):
         gdf,
         clipped_data[0],
         affine=clipped_transform,
-        stats=["mean", "median", "max", "min", "std"]
+        stats=["mean", "median", "max", "min", "std","range","sum"]
     )
 
-    gdf["pollution_mean"] = [s["mean"] for s in stats]
-    gdf["pollution_median"] = [s["median"] for s in stats]
-    gdf["pollution_max"] = [s["max"] for s in stats]
-    gdf["pollution_min"] = [s["min"] for s in stats]
-    gdf["pollution_std"] = [s["std"] for s in stats]
+    zone_id_list = [row.label for _, row in gdf.iterrows()]
+    # to add stats later check rasterio documentation (include add_stats argument in zonal_stats method)
+    mean_list = [s["mean"] for s in stats]
+    median_list = [s["median"] for s in stats]
+    max_list = [s["max"] for s in stats]
+    min_list = [s["min"] for s in stats]
+    std_list = [s["std"] for s in stats]
+    range_list = [s["range"] for s in stats]
+    sum_list = [s["sum"] for s in stats]
+
+    # Stats df to export as csv later
+    dict_stats = {"zone_id": zone_id_list,
+                  "mean": mean_list,
+                  "median": median_list,
+                  "max": max_list,
+                  "min": min_list,
+                  "std": std_list,
+                  "range": range_list,
+                  "sum": sum_list}
+    
+    df_stats = pd.DataFrame(dict_stats)
+
+    gdf["pollution_mean"] = mean_list
+    gdf["pollution_median"] = median_list
+    gdf["pollution_max"] = max_list
+    gdf["pollution_min"] = min_list
 
     for i, stat in enumerate(stats):
         for key, value in stat.items():
@@ -111,13 +133,20 @@ def joinData(shapefile,raster):
 
     plt.close(fig)  
 
+    # Export csv files for statistical analysis
+
+    base_folder = "/Users/wenggeiwong/Pollen_Mapping/data/joined_data"
+    output_folder = os.path.join(base_folder, f"{map_borough}_data")
+    os.makedirs(output_folder, exist_ok=True)
+
+    filename = f"{pollutant}_{year}_{map_borough}.csv"    
+    names_in_folder = os.listdir(output_folder)
+    if filename not in names_in_folder:
+        df_stats.to_csv(
+            os.path.join(output_folder,filename)
+        )
 
 
-
-# joinData(manhattan_map,annual15_pm)
-
-# annual15_no2 = "/Users/wenggeiwong/Pollen_Mapping/data/nyccas_data/aa15_no2300m"
-# joinData(manhattan_map,annual15_no2)
 
 for file_entry in os.scandir('/Users/wenggeiwong/Pollen_Mapping/data/nyccas_data'):
     print(os.path.basename(file_entry))
