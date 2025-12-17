@@ -12,6 +12,7 @@ library(terra)
 
 options(scipen = 999)
 
-map <- st_read("./data/redlining_sfs/manh_holc_sf.json")
-col_sites <- read.csv("./data/location_site.csv", header=TRUE)
+correlation <- function(data,borough,name){
+  
+}
 

@@ -111,10 +111,10 @@ def joinData(shapefile,raster):
         ax.text(
             row.label_point.x,
             row.label_point.y,
-            row["grade"],   # ← THIS comes from properties.grade
+            row["label"],   # ← THIS comes from properties.grade
             ha="center",
             va="center",
-            fontsize=10,
+            fontsize=5,
             weight="bold"
         )
 
