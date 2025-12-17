@@ -12,19 +12,28 @@ manhattan_map = gpd.read_file("/Users/wenggeiwong/Pollen_Mapping/data/redlining_
 bronx_map = gpd.read_file('/Users/wenggeiwong/Pollen_Mapping/data/redlining_sfs/brx_holc_sf.json')
 annual15_pm = "/Users/wenggeiwong/Pollen_Mapping/data/nyccas_data/aa15_pm300m"
 
-# Create avg. maps
-def joinData(shapefile,raster):
+def find_year(raster):
+        filename = os.path.basename(raster)
+        year = filename.split("_")[0]
+        digits_list = [char for char in year if char.isdigit()]
+        year = "".join(digits_list)
+        year = int(year)
+        year = year + 2008
+        return year
+    
+def find_pollutant(raster):
     filename = os.path.basename(raster)
-    year = filename.split("_")[0]
-    digits_list = [char for char in year if char.isdigit()]
-    year = "".join(digits_list)
-    year = int(year)
-    year = year + 2008
-
     pollutant = filename.split("_")[-1]
     pollutant = pollutant.replace("300m","").upper()
     if pollutant == "PM":
         pollutant = "PM2.5"
+    return pollutant
+
+# Create avg. maps
+def joinData(shapefile,raster):
+    
+    year = find_year(raster)
+    pollutant = find_pollutant(raster)
     
     with rasterio.open(raster) as src:
         data = src.read(1).astype("float32")  # Convert to float
