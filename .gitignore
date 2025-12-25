@@ -6,3 +6,5 @@ pollen.csv
 .httr-oauth
 /Users/wenggeiwong/Pollen_Mapping/data/joined_data
 data/joined_data
+
+.env

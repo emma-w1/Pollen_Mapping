@@ -7,10 +7,12 @@ import numpy as np
 from rasterstats import zonal_stats
 import os
 import pandas as pd
+import requests
 
 manhattan_map = gpd.read_file("/Users/wenggeiwong/Pollen_Mapping/data/redlining_sfs/manh_holc_sf.json")
 bronx_map = gpd.read_file('/Users/wenggeiwong/Pollen_Mapping/data/redlining_sfs/brx_holc_sf.json')
-annual15_pm = "/Users/wenggeiwong/Pollen_Mapping/data/nyccas_data/aa15_pm300m"
+DATASET_ID = "hn5i-inap"
+BASE_URL = f"https://data.cityofnewyork.us/api/v3/views/{DATASET_ID}/query.json"
 
 def find_year(raster):
         filename = os.path.basename(raster)
@@ -156,14 +158,14 @@ def joinData(shapefile,raster):
         )
 
 
-
-for file_entry in os.scandir('/Users/wenggeiwong/Pollen_Mapping/data/nyccas_data'):
-    print(os.path.basename(file_entry))
-    if not os.path.basename(file_entry).startswith("."):
-        joinData(manhattan_map,file_entry.path)
-        print("Manhattan export for " + os.path.basename(file_entry) + " complete")
-        joinData(bronx_map,file_entry.path)
-        print("Bronx export for " + os.path.basename(file_entry) + " complete")
+def exportData():
+    for file_entry in os.scandir('/Users/wenggeiwong/Pollen_Mapping/data/nyccas_data'):
+        print(os.path.basename(file_entry))
+        if not os.path.basename(file_entry).startswith("."):
+            joinData(manhattan_map,file_entry.path)
+            print("Manhattan export for " + os.path.basename(file_entry) + " complete")
+            joinData(bronx_map,file_entry.path)
+            print("Bronx export for " + os.path.basename(file_entry) + " complete")
 
 
 print("DONE RUNNING!!!!")
