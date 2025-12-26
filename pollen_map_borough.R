@@ -15,7 +15,7 @@ pollen_data <- data[,c("Borough","Influx_trees","Influx_trees_alrg","Influx_plat
                        "Influx_ulm","Influx_pop","Influx_carya","Influx_poa","Influx_acer","Influx_fagus",
                        "Influx_bet","Influx_frax","Latitude","Longitude")]
 pollen_data <- st_as_sf(pollen_data, coords = c("Longitude", "Latitude"),  # specify coordinate columns
-                        crs = 4326) # assign a coordinate reference system (WGS84)
+                        crs = 4326) # assign a coordinate reference system 
 
 pollen_map = nyc_boundaries(geography = "tract") #NYC MAP
 
