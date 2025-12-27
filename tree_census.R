@@ -63,7 +63,6 @@ export_tree_data <- function(borough){ # exports data from tree census filtered 
   write.csv(df,file=glue("/Users/wenggeiwong/Pollen_Mapping/data/{tolower(borough)}_tree_data.csv"),row.names=FALSE)
 }
 
-
 main <- function(){
   print("Complete!")
 }

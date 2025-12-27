@@ -3,16 +3,13 @@ from rasterio.plot import show
 import matplotlib.pyplot as plt
 import geopandas as gpd
 from rasterio.mask import mask
-import numpy as np
 from rasterstats import zonal_stats
 import os
 import pandas as pd
-import requests
 
-manhattan_map = gpd.read_file("/Users/wenggeiwong/Pollen_Mapping/data/redlining_sfs/manh_holc_sf.json")
-bronx_map = gpd.read_file('/Users/wenggeiwong/Pollen_Mapping/data/redlining_sfs/brx_holc_sf.json')
-DATASET_ID = "hn5i-inap"
-BASE_URL = f"https://data.cityofnewyork.us/api/v3/views/{DATASET_ID}/query.json"
+manhattan_map = gpd.read_file("/Users/wenggeiwong/Pollen_Mapping/data/redlining_sfs/manh_holc_sf.json", engine="fiona")
+bronx_map = gpd.read_file('/Users/wenggeiwong/Pollen_Mapping/data/redlining_sfs/brx_holc_sf.json', engine="fiona")
+
 
 def find_year(raster):
         filename = os.path.basename(raster)
@@ -33,7 +30,7 @@ def find_pollutant(raster):
 
 # Create avg. maps
 def joinData(shapefile,raster):
-    
+    print("HIIIII")
     year = find_year(raster)
     pollutant = find_pollutant(raster)
     
@@ -72,15 +69,16 @@ def joinData(shapefile,raster):
 
     # Stats df to export as csv later
     dict_stats = {"zone_id": zone_id_list,
-                  "mean": mean_list,
-                  "median": median_list,
-                  "max": max_list,
-                  "min": min_list,
-                  "std": std_list,
-                  "range": range_list,
-                  "sum": sum_list}
+                  "mean_pollen": mean_list,
+                  "median_pollen": median_list,
+                  "max_pollen": max_list,
+                  "min_pollen": min_list,
+                  "std_pollen": std_list,
+                  "range_pollen": range_list,
+                  "sum_pollen": sum_list}
     
     df_stats = pd.DataFrame(dict_stats)
+    print(df_stats)
 
     gdf["pollution_mean"] = mean_list
     gdf["pollution_median"] = median_list
@@ -167,5 +165,5 @@ def exportData():
             joinData(bronx_map,file_entry.path)
             print("Bronx export for " + os.path.basename(file_entry) + " complete")
 
-
+exportData()
 print("DONE RUNNING!!!!")
