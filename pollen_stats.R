@@ -14,7 +14,11 @@ library(dotenv)
 library(glue)
 library(stringr)
 library(car)
+library(broom)
+library(rstatix)
 
+
+# TO-DO: reformat file structure so that unsignificant & significant findings are separated in anova_results & welch's anova results
 
 options(scipen = 999)
 
@@ -69,7 +73,7 @@ anova_test <- function(df,title_label){ # this is specifically based on mean
   anova_result <- aov(mean_pollen~zone,data=df)
   anova_df <- as.data.frame(summary(anova_result)[[1]])
   
-  write.csv(anova_df,file=glue("/Users/wenggeiwong/Pollen_Mapping/results/anova_results/anova_test_{title_label}.csv"))
+  # write.csv(anova_df,file=glue("/Users/wenggeiwong/Pollen_Mapping/results/anova_results/anova_test_{title_label}.csv"))
 
   return(anova_result)
 }
@@ -92,19 +96,34 @@ tukey_test <- function(anova_result,title_label){
   png(file=glue("/Users/wenggeiwong/Pollen_Mapping/results/anova_results/tukey_results/bronx_tukey_results/bronx_tukey_plots/tukey_plot_{title_label}.png"))
   plot(tukey_result) 
   dev.off()
-  write.csv(tukey_df,file=glue("/Users/wenggeiwong/Pollen_Mapping/results/anova_results/tukey_results/tukey_test_{title_label}.csv"))
+  # write.csv(tukey_df,file=glue("/Users/wenggeiwong/Pollen_Mapping/results/anova_results/tukey_results/tukey_test_{title_label}.csv"))
   print("Tukey Test Complete:")
 }
 
 welchs_anova_test <- function(general_df,title_label){
   welchs_anova_result <- oneway.test(mean_pollen ~ zone, data = general_df, var.equal = FALSE)
-  welchs_anova_df <- as.data.frame(summary(welchs_anova_df)[[1]])
-  write.csv(welchs_anova_df,file=glue("/Users/wenggeiwong/Pollen_Mapping/results/welchs_anova_results/welchs_anova_test.{title_label}csv"))
+  welchs_anova_df <- tidy(welchs_anova_result)
+  welchs_anova_df$method <- NULL
+  write.csv(welchs_anova_df,file=glue("/Users/wenggeiwong/Pollen_Mapping/results/welchs_anova_results/welchs_anova_test_{title_label}.csv"))
+  return(welchs_anova_result)
 }
 
-# welchs_anova_pos_hoc_required <- function(df_welchs_anova){
-#   welchs_anova_pval <- df_welchs_anova[]
-# }
+welchs_anova_pos_hoc_required <- function(df_welchs_anova){
+  welchs_anova_pval <- df_welchs_anova[1,"p.value"]
+  if(welchs_anova_pval <= 0.05){
+    print(glue("Welch's ANOVA: Further post-hoc testing required w/ Welch's ANOVA p-val of {welchs_anova_pval}"))
+    return(TRUE)
+  }else{
+    print(glue("Welch's ANOVA: Further post-hoc testing not required w/ Welch's ANOVA p-val of {welchs_anova_pval}"))
+    return(FALSE)
+  }
+}
+
+games_howell_test <- function(general_df,title_label){
+  games_howell_result <- games_howell_test(general_df, mean_pollen~zone)
+  write.csv(games_howell_result,file=glue("/Users/wenggeiwong/Pollen_Mapping/results/welchs_anova_results/games_howell_results/games_howell_tests_{title_label}.csv"))
+  return(games_howell_result)
+}
 
 main <- function(){
   filepath1 <- "/Users/wenggeiwong/Pollen_Mapping/data/joined_data/bronx_data/O3_2023_bronx.csv"
@@ -112,6 +131,7 @@ main <- function(){
   general_df <- group_by_zone(filepath1)
   is_normal <- shapiro_wilk_test(general_df)
   similar_intra_variance <- levene_test(general_df)
+  welchs_anova_test(general_df,label)
   if(similar_intra_variance){
     # anova
     result_anova <- anova_test(general_df,label)
@@ -123,8 +143,15 @@ main <- function(){
   }else{
     if(is_normal){
       # welch's anova implementation 
-      welchs_anova_test(general_df,label)
+      result_welchs_anova <- welchs_anova_test(general_df,label)
+      welchs_anova_result <- welchs_anova_test(general_df,label)
+      welchs_anova_df <- tidy(welchs_anova_result)
+      welchs_anova_df$method <- NULL
+      is_post_hoc_welchs_anova <- welchs_anova_post_hoc_required(welchs_anova_df)
       # if significant, games-howell test for post-hoc
+      if(is_post_hoc_welchs_anova){
+        games_howell_df <- games_howell_test(general_df,label)
+      }
     }else{
       # kruskal-wallis implementation
       # if significant, dunn test for post-hoc
