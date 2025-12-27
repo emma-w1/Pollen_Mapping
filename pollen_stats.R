@@ -89,7 +89,9 @@ anova_post_hoc_required <- function(df_anova){
 tukey_test <- function(anova_result,title_label){
   tukey_result <- TukeyHSD(anova_result)
   tukey_df <- as.data.frame(tukey_result$zone)
-  plot(tukey_result) # maybe export later, but i don't think this is that important
+  png(file=glue("/Users/wenggeiwong/Pollen_Mapping/results/anova_results/tukey_results/bronx_tukey_results/bronx_tukey_plots/tukey_plot_{title_label}.png"))
+  plot(tukey_result) 
+  dev.off()
   write.csv(tukey_df,file=glue("/Users/wenggeiwong/Pollen_Mapping/results/anova_results/tukey_results/tukey_test_{title_label}.csv"))
   print("Tukey Test Complete:")
 }
@@ -105,7 +107,7 @@ welchs_anova_test <- function(general_df,title_label){
 # }
 
 main <- function(){
-  filepath1 <- "/Users/wenggeiwong/Pollen_Mapping/data/joined_data/bronx_data/NO2_2023_bronx.csv"
+  filepath1 <- "/Users/wenggeiwong/Pollen_Mapping/data/joined_data/bronx_data/O3_2023_bronx.csv"
   label <- get_file_label(filepath1)
   general_df <- group_by_zone(filepath1)
   is_normal <- shapiro_wilk_test(general_df)
@@ -132,6 +134,7 @@ main <- function(){
   print("Complete!!!")
 }
 
+main()
 
 
 # after testing, anova is applicable for all bronx and manhattan csvs, must retest w/ pollen
