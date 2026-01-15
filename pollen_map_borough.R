@@ -10,7 +10,7 @@ library(htmltools)
 
 options(scipen = 999)
 
-data <- read.csv("./data/pollen.csv", header = TRUE)
+data <- read.csv("/Users/wenggeiwong/Pollen_Mapping/data/pollen.csv", header = TRUE)
 pollen_data <- data[,c("Borough","Influx_trees","Influx_trees_alrg","Influx_plat","Influx_que","Influx_amb",
                        "Influx_ulm","Influx_pop","Influx_carya","Influx_poa","Influx_acer","Influx_fagus",
                        "Influx_bet","Influx_frax","Latitude","Longitude")]
