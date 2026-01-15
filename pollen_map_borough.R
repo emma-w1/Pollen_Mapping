@@ -7,6 +7,7 @@ library(dplyr)
 library(nycgeo)
 library(dplyr)
 library(htmltools)
+library(sf)
 
 options(scipen = 999)
 
@@ -17,16 +18,18 @@ pollen_data <- data[,c("Borough","Influx_trees","Influx_trees_alrg","Influx_plat
 pollen_data <- st_as_sf(pollen_data, coords = c("Longitude", "Latitude"),  # specify coordinate columns
                         crs = 4326) # assign a coordinate reference system 
 
-pollen_map = nyc_boundaries(geography = "tract") #NYC MAP
+# pollen_map = nyc_boundaries(geography = "tract") #NYC MAP
 
 
 borough_map <- function(borough) {
   #borough-specific setup
   borough_data <- pollen_data[pollen_data$Borough == borough, ]
   borough_data <- st_transform(borough_data, 4326)
-  pollen_map_borough = nyc_boundaries(geography = "tract", 
-                                        filter_by = "borough",
-                                        region = tolower(borough))
+  if(borough == "Manhattan"){
+    pollen_map_borough <- st_read("/Users/wenggeiwong/Pollen_Mapping/data/redlining_sfs/manh_holc_sf.json")
+  }else if(borough == "Bronx"){
+    pollen_map_borough <- st_read("/Users/wenggeiwong/Pollen_Mapping/data/redlining_sfs/brx_holc_sf.json")
+  }
   pollen_map_borough <- st_make_valid(pollen_map_borough)
   pollen_map_borough <- st_transform(pollen_map_borough, 4326)
   
@@ -76,7 +79,7 @@ borough_map <- function(borough) {
     tm_polygons(fill = "mean_influx",       # color tracts by mean influx
                 palette = "brewer.greens",
                 border.alpha = 0.3,
-                id = "geoid") +             # show tract ID on hover
+                id = "area_id") +             # show zone ID on hover
     tm_shape(pollen_buffers) +
     tm_borders(col = "blue", lwd = 2, alpha = 0.6) +  # outline buffers
     tm_shape(borough_data) +
@@ -91,20 +94,11 @@ borough_map <- function(borough) {
 
 manhattan <- borough_map("Manhattan")
 bronx <- borough_map("Bronx")
-queens <- borough_map("Queens")
-staten_island <- borough_map("Staten Island")
-brooklyn <- borough_map("Brooklyn")
 
 all_maps <- tagList(
   h2("Manhattan"),
-  manhattan,
-  h2("Brooklyn"),
-  brooklyn,
-  h2("Queens"),
-  queens,
+  tmap_leaflet(manhattan),
   h2("Bronx"),
-  bronx,
-  h2("Staten Island"),
-  staten_island
+  tmap_leaflet(bronx)
 )
 save_html(all_maps, file = "index.html")
