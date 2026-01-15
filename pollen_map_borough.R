@@ -88,7 +88,7 @@ borough_map <- function(borough) {
   
   #print(map1)
   #print(map2)
-  print(map3)
+  return(tmap_leaflet(map3))
   
 }
 
@@ -97,9 +97,9 @@ bronx <- borough_map("Bronx")
 
 all_maps <- tagList(
   h2("Manhattan"),
-  tmap_leaflet(manhattan),
+  manhattan,
   h2("Bronx"),
-  tmap_leaflet(bronx)
+  bronx
 )
 
 save_html(all_maps, file = "/Users/wenggeiwong/Pollen_Mapping/index.html")
