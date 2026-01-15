@@ -8,30 +8,33 @@ import geopandas as gpd
 from pyproj import Transformer
 import numpy as np
 
+
+
 buffer_sizes = [50,100,250,500,1000]
+conversion_factor = 3.280839895
+buffer_sizes_feet = [buffer*conversion_factor for buffer in buffer_sizes]
 output_csv_path="/Users/wenggeiwong/Pollen_Mapping/data/land_use_data/test"
 pollen_filepath="/Users/wenggeiwong/Pollen_Mapping/data/pollen.csv"
 tree_coverage_raster_filepath='/Users/wenggeiwong/landcover_2010_nyc_3ft.img'
 pollen_data = pd.read_csv(pollen_filepath)
 elevation_filepath = "/Users/wenggeiwong/NYC_DEM_1ft_Float_2/DEM_LiDAR_1ft_2010_Improved_NYC.img"
+building_api_link = "https://data.cityofnewyork.us/api/v3/views/5zhs-2jue/query.json?query=SELECT%0A%20%20%60the_geom%60%2C%0A%20%20%60name%60%2C%0A%20%20%60bin%60%2C%0A%20%20%60doitt_id%60%2C%0A%20%20%60shape_area%60%2C%0A%20%20%60base_bbl%60%2C%0A%20%20%60objectid%60%2C%0A%20%20%60construction_year%60%2C%0A%20%20%60feature_code%60%2C%0A%20%20%60geom_source%60%2C%0A%20%20%60ground_elevation%60%2C%0A%20%20%60height_roof%60%2C%0A%20%20%60last_edited_date%60%2C%0A%20%20%60last_status_type%60%2C%0A%20%20%60mappluto_bbl%60%2C%0A%20%20%60shape_length%60%0AWHERE%20%60construction_year%60%20%3C%3D%202013$offset=1000$limit='1055736"
+
 
 def tree_coverage_percentage(raster_filepath):
     with rasterio.open(raster_filepath) as src:
         raster_nodata = src.nodata
-        raster_crs = src.crs
-        raster_dtype = src.dtypes[0]
-        
+        raster_crs = src.crs        
         geometry = [Point(xy) for xy in zip(pollen_data['Longitude'], pollen_data['Latitude'])]
         gdf = gpd.GeoDataFrame(pollen_data, geometry=geometry, crs='EPSG:4326')
         # if coordinate refs are not same, make them
         if gdf.crs != raster_crs:
                     gdf = gdf.to_crs(raster_crs)
         # iterate through each possible buffer size          
-        for buffer_size in buffer_sizes:
-            conversion_factor = 3.280839895 # since buffer size is in meters but geodataframe is in feet
-            buffer_size_crs = buffer_size * conversion_factor
+        for buffer_size in buffer_sizes_feet:
+
             # create buffer
-            gdf['buffer'] = gdf.geometry.buffer(buffer_size_crs)
+            gdf['buffer'] = gdf.geometry.buffer(buffer_size)
             tree_canopy_pcts = []
             # iterate thorugh each point
             for i, row in gdf.iterrows():
@@ -161,10 +164,8 @@ def elevation_statistics(raster_filepath):
         pollen_data['point_elevation'] = point_elevations
 
 
-        for buffer_size in buffer_sizes:
-            conversion_factor = 3.280839895
-            buffer_size_crs = buffer_size * conversion_factor
-            gdf['buffer'] = gdf.geometry.buffer(buffer_size_crs)
+        for buffer_size in buffer_sizes_feet:
+            gdf['buffer'] = gdf.geometry.buffer(buffer_size)
 
             max_elevations = []
             min_elevations = []
@@ -204,14 +205,18 @@ def elevation_statistics(raster_filepath):
                     min_elevations.append(np.nan)
                     mean_elevations.append(np.nan)
             
-            pollen_data[f'elevation_max_{buffer_size}m'] = max_elevations
-            pollen_data[f'elevation_min_{buffer_size}m'] = min_elevations
-            pollen_data[f'elevation_mean_{buffer_size}m'] = mean_elevations
+            pollen_data[f'elevation_max_{buffer_size/conversion_factor}m'] = max_elevations
+            pollen_data[f'elevation_min_{buffer_size/conversion_factor}m'] = min_elevations
+            pollen_data[f'elevation_mean_{buffer_size/conversion_factor}m'] = mean_elevations
 
     pollen_data.to_csv(output_csv_path, index=False)
     print(f"Results saved to {output_csv_path}")
     return pd.read_csv(output_csv_path)
 
 
-# data = elevation_statistics(elevation_filepath)
-compareToStudy("elevation_mean")
+
+     
+
+# tree_coverage_percentage(tree_coverage_raster_filepath)
+elevation_statistics(elevation_filepath)
+# compareToStudy("elevation_mean")

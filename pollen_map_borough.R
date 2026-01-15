@@ -101,4 +101,5 @@ all_maps <- tagList(
   h2("Bronx"),
   tmap_leaflet(bronx)
 )
-save_html(all_maps, file = "index.html")
+
+save_html(all_maps, file = "/Users/wenggeiwong/Pollen_Mapping/index.html")
