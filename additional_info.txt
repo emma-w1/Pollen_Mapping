@@ -1,0 +1,95 @@
+All values are saved to corresponding files, commented out lines saving results to ensure data stays the same and isn't accidentally changed
+
+
+
+Actual values from Weinberger et al. supplementary info
+Comparison performed in compare_to_study method, perform Mean Absolute Error to compare variability from study in the future for more defensible data accuracy
+'''
+    ✅
+    Variable	Min	p25*	p50*	Mean	p75*	Max
+    Tree canopy (%)						
+        0.05 km	0.0	5.5	11.4	17.2	28.8	61.3
+        0.1 km	0.0	6.2	15.0	18.6	28.1	65.8
+        0.25 km	0.0	8.2	16.3	19.2	27.1	59.8
+        0.5 km	1.8	9.0	15.2	18.0	23.0	56.4
+        1 km	2.8	10.2	14.6	18.2	22.2	54.3
+    '''
+
+    '''
+    ✅
+    Variable	Min	p25*	p50*	Mean	p75*	Max
+    Min elevation (feet)						
+    0.05 km	-13.5	8.8	27.6	51.6	58.4	271.0
+    0.1 km	-62.5	5.9	23.0	45.0	52.1	251.0
+    0.25 km	-75.9	-1.9	9.8	31.7	47.0	206.2
+    0.5 km	-75.9	-3.3	0.0	13.1	23.4	128.2
+    1 km	-75.9	-13.4	-2.6	-2.4	0.2	78.7
+    '''
+
+    '''
+    ✅
+    Variable	Min	p25*	p50*	Mean	p75*	Max
+    Mean elevation (feet)						
+    0.05 km	3.2	12.5	37.4	60.6	74.1	283.5
+    0.1 km	3.3	12.7	36.3	60.3	69.9	283.2
+    0.25 km	6.5	13.1	37.5	60.7	71.7	280.3
+    0.5 km	8.3	16.3	39.8	60.9	80.6	274.0
+    1 km	8.2	17.4	44.1	58.9	84.9	255.6
+    '''
+
+    '''
+    ✅
+    Variable	Min	p25*	p50*	Mean	p75*	Max
+    Max elevation (feet)						
+    0.05 km	8.4	18.9	44.1	68.4	96.7	301.1
+    0.1 km	10.8	25.9	48.4	74.5	106.6	322.7
+    0.25 km	17.4	41.9	59.5	87.5	118.0	344.3
+    0.5 km	21.1	47.6	80.1	104.3	143.5	373.1
+    1 km	24.4	58.0	92.0	120.9	156.4	412.1
+    '''
+
+    '''
+    (not exactly precise)
+    Distributed building height (meters)
+    Variable	Min	p25*	p50*	Mean	p75*	Max						
+    0.05 km	0.0	0.8	2.7	11.3	7.2	139.3
+    0.1 km	0.0	1.0	3.2	10.2	7.7	94.0
+    0.25 km	0.0	1.4	3.5	8.3	6.8	54.6
+    0.5 km	0.1	1.6	3.4	8.3	6.6	41.2
+    1 km	0.0	1.4	3.4	6.8	6.2	34.2
+    '''
+
+
+Comparison for Distributed Building Height:
+
+'''
+Fraction method:
+50 m: min - 0.0, p25 - 2.73755, p50 - 6.680999999999999, mean - 21.094903571428567, p75 - 17.426125, max - 119.6532
+
+100 m: min - 0.0, p25 - 3.119675, p50 - 7.8521, mean - 19.402585714285713, p75 - 22.7999, max - 85.5443
+
+250 m: min - 0.0037, p25 - 3.43525, p50 - 6.59995, mean - 14.935082142857144, p75 - 18.4828, max - 54.8389
+
+500 m: min - 0.0752, p25 - 4.02235, p50 - 6.02925, mean - 13.798317857142857, p75 - 23.3672, max - 46.9216
+
+1000 m: min - 0.0283, p25 - 4.1997, p50 - 6.7179, mean - 11.68279642857143, p75 - 22.3387, max - 33.4782
+'''
+
+'''
+Centroid Method:
+50 m: min - 0.0, p25 - 1.429275, p50 - 6.8698999999999995, mean - 30.319689285714283, p75 - 16.6385, max - 193.9882
+100 m: min - 0.0, p25 - 2.94965, p50 - 8.1199, mean - 18.77664642857143, p75 - 21.3232, max - 82.2208
+250 m: min - 0.0037, p25 - 3.408125, p50 - 6.4184, mean - 14.77495357142857, p75 - 18.3549, max - 55.612
+500 m: min - 0.0834, p25 - 3.77155, p50 - 6.0196000000000005, mean - 13.762446428571426, p75 - 22.784, max - 47.9707
+1000 m: min - 0.0281, p25 - 4.2111, p50 - 6.7575, mean - 11.664853571428571, p75 - 22.2912, max - 33.2887
+'''
+
+'''
+Confirm later:
+StatisticStudy      AvgFraction     MAECentroid     MAE     Winner 
+p25                 1.24            2.26            1.91✅  Centroid
+p50                 3.24            3.54            3.60✅  Fraction
+mean                8.98            7.20            8.88✅  Fraction
+p75                 6.90            13.98           13.38✅ Centroid
+max                 72.66           6.96            15.03✅ Fraction
+'''

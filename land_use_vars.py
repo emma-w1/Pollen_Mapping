@@ -23,15 +23,16 @@ buffer_sizes = [50,100,250,500,1000]
 conversion_factor = 3.280839895
 buffer_sizes_feet = [buffer*conversion_factor for buffer in buffer_sizes]
 
-output_csv_path="/Users/wenggeiwong/pollen_mapping_data/land_use_data/results.csv"
-pollen_filepath="/Users/wenggeiwong/pollen_mapping_data/pollen.csv"
-tree_coverage_raster_filepath='/Users/wenggeiwong/landcover_2010_nyc_3ft.img'
+output_csv_path="/Users/wenggeiwong/pollen_mapping_data/land_use_data/results.csv" # EPSG:4326 (latitude/longitude coordinates)
+tree_coverage_raster_filepath='/Users/wenggeiwong/landcover_2010_nyc_3ft.img' # EPSG:2263
+
+pollen_filepath="/Users/wenggeiwong/pollen_mapping_data/pollen.csv" 
 pollen_data = pd.read_csv(pollen_filepath)
-pollen_data = pollen_data[(pollen_data["Borough"]=="Manhattan") | (pollen_data["Borough"]=="Bronx")]
-elevation_filepath = "/Users/wenggeiwong/NYC_DEM_1ft_Float_2/DEM_LiDAR_1ft_2010_Improved_NYC.img"
-building_api_link = "https://data.cityofnewyork.us/api/v3/views/5zhs-2jue/query.json?query=SELECT%0A%20%20%60the_geom%60%2C%0A%20%20%60name%60%2C%0A%20%20%60bin%60%2C%0A%20%20%60doitt_id%60%2C%0A%20%20%60shape_area%60%2C%0A%20%20%60base_bbl%60%2C%0A%20%20%60objectid%60%2C%0A%20%20%60construction_year%60%2C%0A%20%20%60feature_code%60%2C%0A%20%20%60geom_source%60%2C%0A%20%20%60ground_elevation%60%2C%0A%20%20%60height_roof%60%2C%0A%20%20%60last_edited_date%60%2C%0A%20%20%60last_status_type%60%2C%0A%20%20%60mappluto_bbl%60%2C%0A%20%20%60shape_length%60%0AWHERE%20%60construction_year%60%20%3C%3D%202013$offset=1000$limit='1055736"
-building_df_filepath = "/Users/wenggeiwong/pollen_mapping_data/land_use_data/2013_buildings.csv"
-filtered_building_df_filepath = "/Users/wenggeiwong/pollen_mapping_data/land_use_data/2013_buildings_filtered.csv"
+pollen_data = pollen_data[(pollen_data["Borough"]=="Manhattan") | (pollen_data["Borough"]=="Bronx")] # EPSG:4326 (latitude/longitude coordinates)
+
+elevation_filepath = "/Users/wenggeiwong/NYC_DEM_1ft_Float_2/DEM_LiDAR_1ft_2010_Improved_NYC.img" # EPSG:2263
+building_df_filepath = "/Users/wenggeiwong/pollen_mapping_data/land_use_data/2013_buildings.csv" #EPSG:4326
+filtered_building_df_filepath = "/Users/wenggeiwong/pollen_mapping_data/land_use_data/2013_buildings_filtered.csv" #EPSG:4326
 
 def tree_coverage_percentage(raster_filepath):
     with rasterio.open(raster_filepath) as src:
@@ -39,9 +40,9 @@ def tree_coverage_percentage(raster_filepath):
         raster_crs = src.crs        
         geometry = [Point(xy) for xy in zip(pollen_data['Longitude'], pollen_data['Latitude'])]
         gdf = gpd.GeoDataFrame(pollen_data, geometry=geometry, crs='EPSG:4326')
-        # if coordinate refs are not same, make them
+
         if gdf.crs != raster_crs:
-                    gdf = gdf.to_crs(raster_crs)
+                    gdf = gdf.to_crs(raster_crs) # converts to EPSG:2263
         # iterate through each possible buffer size          
         for buffer_size in buffer_sizes_feet:
 
@@ -98,64 +99,8 @@ def compareToStudy(variable):
     # to compare with paper findings: 
     for buffer in buffer_sizes:
         print(f"{buffer} m: min - {data[f'{variable}_{buffer}m'].min()}, p25 - {np.percentile(data[f'{variable}_{buffer}m'],25)}, p50 - {np.percentile(data[f'{variable}_{buffer}m'],50)}, mean - {data[f'{variable}_{buffer}m'].mean()}, p75 - {np.percentile(data[f'{variable}_{buffer}m'],75)}, max - {data[f'{variable}_{buffer}m'].max()}")
-    # print(f"50 m: min - {data['tree_canopy_pct_50m'].min()}, p25 - {np.percentile(data['tree_canopy_pct_50m'],25)}, p50 - {np.percentile(data['tree_canopy_pct_50m'],50)}, mean - {data['tree_canopy_pct_50m'].mean()}, p75 - {np.percentile(data['tree_canopy_pct_50m'],75)}, max - {data['tree_canopy_pct_50m'].max()}")
-    # print(f"100 m: min - {data['tree_canopy_pct_100m'].min()}, p25 - {np.percentile(data['tree_canopy_pct_100m'],25)}, p50 - {np.percentile(data['tree_canopy_pct_100m'],50)}, mean - {data['tree_canopy_pct_100m'].mean()}, p75 - {np.percentile(data['tree_canopy_pct_100m'],75)}, max - {data['tree_canopy_pct_100m'].max()}")
-    # print(f"250 m: min - {data['tree_canopy_pct_250m'].min()}, p25 - {np.percentile(data['tree_canopy_pct_250m'],25)}, p50 - {np.percentile(data['tree_canopy_pct_250m'],50)}, mean - {data['tree_canopy_pct_250m'].mean()}, p75 - {np.percentile(data['tree_canopy_pct_250m'],75)}, max - {data['tree_canopy_pct_250m'].max()}")
-    # print(f"500 m: min - {data['tree_canopy_pct_500m'].min()}, p25 - {np.percentile(data['tree_canopy_pct_500m'],25)}, p50 - {np.percentile(data['tree_canopy_pct_500m'],50)}, mean - {data['tree_canopy_pct_500m'].mean()}, p75 - {np.percentile(data['tree_canopy_pct_500m'],75)}, max - {data['tree_canopy_pct_500m'].max()}")
-    # print(f"1000 m: min - {data['tree_canopy_pct_1000m'].min()}, p25 - {np.percentile(data['tree_canopy_pct_1000m'],25)}, p50 - {np.percentile(data['tree_canopy_pct_1000m'],50)}, mean - {data['tree_canopy_pct_1000m'].mean()}, p75 - {np.percentile(data['tree_canopy_pct_1000m'],75)}, max - {data['tree_canopy_pct_1000m'].max()}")
 
-    '''
-    ✅
-    Variable	Min	p25*	p50*	Mean	p75*	Max
-    Tree canopy (%)						
-        0.05 km	0.0	5.5	11.4	17.2	28.8	61.3
-        0.1 km	0.0	6.2	15.0	18.6	28.1	65.8
-        0.25 km	0.0	8.2	16.3	19.2	27.1	59.8
-        0.5 km	1.8	9.0	15.2	18.0	23.0	56.4
-        1 km	2.8	10.2	14.6	18.2	22.2	54.3
-    '''
 
-    '''
-    ✅
-    Variable	Min	p25*	p50*	Mean	p75*	Max
-    Min elevation (feet)						
-    0.05 km	-13.5	8.8	27.6	51.6	58.4	271.0
-    0.1 km	-62.5	5.9	23.0	45.0	52.1	251.0
-    0.25 km	-75.9	-1.9	9.8	31.7	47.0	206.2
-    0.5 km	-75.9	-3.3	0.0	13.1	23.4	128.2
-    1 km	-75.9	-13.4	-2.6	-2.4	0.2	78.7
-    '''
-
-    '''
-    ✅
-    Variable	Min	p25*	p50*	Mean	p75*	Max
-    Mean elevation (feet)						
-    0.05 km	3.2	12.5	37.4	60.6	74.1	283.5
-    0.1 km	3.3	12.7	36.3	60.3	69.9	283.2
-    0.25 km	6.5	13.1	37.5	60.7	71.7	280.3
-    0.5 km	8.3	16.3	39.8	60.9	80.6	274.0
-    1 km	8.2	17.4	44.1	58.9	84.9	255.6
-    '''
-
-    '''
-    ✅
-    Variable	Min	p25*	p50*	Mean	p75*	Max
-    Max elevation (feet)						
-    0.05 km	8.4	18.9	44.1	68.4	96.7	301.1
-    0.1 km	10.8	25.9	48.4	74.5	106.6	322.7
-    0.25 km	17.4	41.9	59.5	87.5	118.0	344.3
-    0.5 km	21.1	47.6	80.1	104.3	143.5	373.1
-    1 km	24.4	58.0	92.0	120.9	156.4	412.1
-    '''
-
-    '''
-    Distributed building height (meters)						
-    0.05 km	0.0	0.8	2.7	11.3	7.2	139.3
-    0.1 km	0.0	1.0	3.2	10.2	7.7	94.0
-    0.25 km	0.0	1.4	3.5	8.3	6.8	54.6
-    0.5 km	0.1	1.6	3.4	8.3	6.6	41.2
-    1 km	0.0	1.4	3.4	6.8	6.2	34.2
-    '''
 
 def elevation_statistics(raster_filepath):
     with rasterio.open(raster_filepath) as src:
@@ -165,7 +110,7 @@ def elevation_statistics(raster_filepath):
         geometry = [Point(xy) for xy in zip(pollen_data['Longitude'], pollen_data['Latitude'])]
         gdf = gpd.GeoDataFrame(pollen_data, geometry=geometry, crs='EPSG:4326')
 
-        if gdf.crs != raster_crs:
+        if gdf.crs != raster_crs: # convert to EPSG:2263
             gdf = gdf.to_crs(raster_crs)
 
         # find point elevations:
@@ -234,6 +179,7 @@ def elevation_statistics(raster_filepath):
     print(f"Results saved to {output_csv_path}")
     return pd.read_csv(output_csv_path)
 
+#create first buildings dataset using API and assign to buildings_df_pathname
 def buildings2013():
     
     domain = "data.cityofnewyork.us"
@@ -249,7 +195,7 @@ def buildings2013():
             # done in batches since dataset is too large
             current_batch = client.get(
                 "5zhs-2jue", # endpoint
-                where=f"construction_year <= '{2013}'",
+                where=f"construction_year < '{2013}'",
                 limit = limit,
                 offset = offset
             )
@@ -264,7 +210,7 @@ def buildings2013():
             break
 
     current_df = pd.DataFrame.from_records(all_current)
-    print(f"Total fetched buildings w/ construction date <= 2013: {len(current_df)}")
+    print(f"Total fetched buildings w/ construction date < 2013: {len(current_df)}")
 
     # fetch from historic dataset
     all_demolished = []
@@ -273,8 +219,8 @@ def buildings2013():
     while True:
         try:
             where_clause = (
-                        f"construction_year <= '2013' AND "
-                        f"(demolition_year > '2013' OR demolition_year IS NULL)"
+                        f"construction_year < '2013' AND "
+                        f"(demolition_year >= '2013' OR demolition_year IS NULL)"
                     )
             
             demolished_batch = client.get(
@@ -297,7 +243,7 @@ def buildings2013():
 
             demolished_batch = client.get(
                     "ipkp-snf6",
-                    where=f"construction_year <= '{2013}'",
+                    where=f"construction_year < '{2013}'",
                     limit=limit,
                     offset=offset
                 )
@@ -317,36 +263,27 @@ def buildings2013():
         demolished_df['demolition_year'] = pd.to_numeric(demolished_df['demolition_year'], errors='coerce')
         demolished_df = demolished_df[
             (demolished_df["demolition_year"].isna()) | 
-            (demolished_df['demolition_year'] > 2013)
+            (demolished_df['demolition_year'] >= 2013)
         ]
-        
-        # Compare counts
-        if len(demolished_df) < original_count:
-            # If count decreased, we did client-side filtering
-            print(f"Client-side filtered: {original_count} -> {len(demolished_df)}")
-    
-    print(f"Demolished buildings that existed in 2013: {len(demolished_df)}")
 
     all_buildings_2013 = pd.concat([current_df, demolished_df], ignore_index=True)
     print(f"\nTotal buildings in 2013 dataset: {len(all_buildings_2013)}")
 
     client.close()
-    all_buildings_2013.to_csv(building_df_filepath)
+    # all_buildings_2013.to_csv(building_df_filepath)
+    print(f'Not saved to {building_df_filepath}; not altered when run')
     return all_buildings_2013
 
-# only uses buildings from manhattan or bronx
+# filter buildings by borough and assing to filtered_buildings_df_pathname
 def filter_buildingsdf(buildings_df):
-        borough_df = pd.read_csv("/Users/wenggeiwong/pollen_mapping_data/Borough_Boundaries_20260116.csv")
+        # filter to manhattan/bronx bounding box
+        borough_df = pd.read_csv("/Users/wenggeiwong/pollen_mapping_data/Borough_Boundaries_20260116.csv") # EPSG:4362
         borough_df = borough_df[(borough_df['BoroName']=='Manhattan') | (borough_df['BoroName']=='Bronx')]
         borough_df['geometry'] = borough_df['the_geom'].apply(wkt.loads)
-        borough_gdf = gpd.GeoDataFrame(borough_df, geometry='geometry', crs="EPSG:2263")
-        # print(gdf.crs.axis_info[0].unit_name)
-        # print(type(gdf.bounds))
+        borough_gdf = gpd.GeoDataFrame(borough_df, geometry='geometry', crs="EPSG:4362")
 
         combined_bounds_tuple = borough_gdf.total_bounds
-        # print(f"Combined bounds (tuple): {combined_bounds_tuple}")
         combined_bbox_polygon = box(*combined_bounds_tuple)
-        print(f"Combined bounds (Polygon WKT): {combined_bbox_polygon.wkt}")
 
         def load_geometry(geojson_data):
             return shape(ast.literal_eval(geojson_data) )
@@ -354,75 +291,72 @@ def filter_buildingsdf(buildings_df):
         buildings_df['geometry'] = buildings_df['the_geom'].apply(load_geometry)
         buildings_df = buildings_df.dropna(subset=['geometry'])
 
-        buildings_gdf = gpd.GeoDataFrame(buildings_df,geometry='geometry', crs="EPSG:2263")
+        buildings_gdf = gpd.GeoDataFrame(buildings_df,geometry='geometry', crs="EPSG:4362")
         filtered_buildings_gdf = buildings_gdf[buildings_gdf.intersects(combined_bbox_polygon)]
-        print("Finished filtering")
         filtered_buildings_df = pd.DataFrame(filtered_buildings_gdf)
         filtered_buildings_df['the_geom'] = filtered_buildings_gdf.geometry.apply(lambda geom: geom.wkt)
-        filtered_buildings_df.to_csv(filtered_building_df_filepath, index=False)
-        print(f"length of unfiltered: {len(buildings_df)}, length of filtered: {len(filtered_buildings_df)}")
-        return filtered_buildings_df
+        # filtered_buildings_df.to_csv(filtered_building_df_filepath, index=False)
+        print(f"Finished filtering! length of unfiltered: {len(buildings_df)}, length of filtered: {len(filtered_buildings_df)}")
+        print(f"Results not saved to {filtered_building_df_filepath}; method already run")
+        return filtered_buildings_df # returns in EPSG:4326
 
-def volume_buildings_gdf():
+ # create and return gdf with volume, area, height for future analysis 
+def volume_buildings_gdf(filtered_buildings_df):
+
     def get_geometry(geom_str):
         try:
             return wkt.loads(geom_str)
         except:
-            try:
-                return shape(json.loads(geom_str))
-            except:
-                return None
-            
+            pass
+        try:
+            return shape(json.loads(geom_str))
+        except:
+            pass
+        try:
+            return shape(ast.literal_eval(geom_str))
+        except:
+            return None
 
-    buildings_df = pd.read_csv(filtered_building_df_filepath)
-    
-    print("Parsing geometries...")
-    buildings_df["geometry"] = buildings_df["the_geom"].apply(get_geometry)
-    buildings_df = buildings_df[buildings_df["geometry"].notna()]
-    print(f"Valid geometries: {len(buildings_df)}",end="/r")
-    print("Creating GeoDataFrame...")
-    buildings_gdf = gpd.GeoDataFrame(buildings_df, geometry='geometry', crs="EPSG:2263") # in feet
-    
-    print(f"Loaded {len(buildings_gdf)} buildings")
-    print(f"CRS: {buildings_gdf.crs}")
-    print(f"Sample geometry: {buildings_gdf.iloc[0].geometry}")
-    print(f"Sample bounds: {buildings_gdf.iloc[0].geometry.bounds}")
+
+
+    filtered_buildings_df = filtered_buildings_df[filtered_buildings_df["geometry"].notna()]
+    filtered_buildings_df["geometry"] = filtered_buildings_df["the_geom"].apply(get_geometry)
+    filtered_buildings_gdf = gpd.GeoDataFrame(filtered_buildings_df, geometry='geometry', crs="EPSG:4326") 
+
+    # reprojecting because we need to find area in feet
+    filtered_buildings_gdf = filtered_buildings_gdf.to_crs("EPSG:2263")
 
     # volume calculations
-    print("Calculating heights...")
-    buildings_gdf["height"] = pd.to_numeric(buildings_gdf["height_roof"], errors='coerce') # height_roof is height from ground
-    buildings_gdf = buildings_gdf[buildings_gdf["height"].notna() & (buildings_gdf['height'] > 0)]
-    print("Calculating volumes...")
-    buildings_gdf["area"] = buildings_gdf.geometry.area
-    buildings_gdf["volume"] = buildings_gdf["area"]* buildings_gdf["height"]
+    filtered_buildings_gdf["height"] = pd.to_numeric(filtered_buildings_gdf["height_roof"], errors='coerce') # height_roof is height from ground in feet
+    filtered_buildings_gdf = filtered_buildings_gdf[filtered_buildings_gdf["height"].notna() & (filtered_buildings_gdf['height'] > 0)]
+    filtered_buildings_gdf["area"] = filtered_buildings_gdf["area"] = filtered_buildings_gdf.geometry.area # in sq feet
+    filtered_buildings_gdf["volume"] = filtered_buildings_gdf["area"]* filtered_buildings_gdf["height"] # in cubic feet
 
-    print(f"Buildings with valid geometry and height: {len(buildings_gdf)}")
-    print("Finished volume_buildings_gdf()")
-    return buildings_gdf
+    print(f"Buildings with valid geometry and height: {len(filtered_buildings_gdf)}")
+    print("Finished creating filtered_buildings_gdf")
+    return filtered_buildings_gdf # in EPSG:4326
 
+
+# find density of volume per buffer and add to final df
 def volume_per_buffer(buildings_gdf):
-    print("Starting volume_per_buffer()...")  # ADD
-    print(f"Buildings GDF has {len(buildings_gdf)} buildings")  # ADD
-    print("Creating points GeoDataFrame...")
     geometry = [Point(xy) for xy in zip(pollen_data["Longitude"],pollen_data["Latitude"])]
-    points_gdf = gpd.GeoDataFrame(pollen_data,geometry=geometry,crs="EPSG:4326") # meters
-    print(f"Created {len(points_gdf)} points")
-    print("Reprojecting points...")  
-    if points_gdf.crs != buildings_gdf.crs:
-        points_gdf = points_gdf.to_crs(buildings_gdf.crs)
-    print("Reprojection complete")  # ADD
-    print("Creating spatial index...")  # ADD
+    points_gdf = gpd.GeoDataFrame(pollen_data,geometry=geometry,crs="EPSG:4326") 
+
+    # convert to EPSG:2263 because our buffer size is in feet
+    points_gdf = points_gdf.to_crs("EPSG:2263") 
+    buildings_gdf = buildings_gdf.to_crs("EPSG:2263")
+
+
     # spacial index allows us to assign buildings to buffer more efficiently
     buildings_sindex = buildings_gdf.sindex
-    print("Spatial index created")  # ADD
 
     # assign for each buffer
 
     for buffer_size_m in buffer_sizes:
         print(f"\n{'='*50}")  # ADD
         buffer_size_feet = buffer_size_m * conversion_factor # radius in ft, needs to be used for EPSG:2263
-        print(f"Creating buffers of {buffer_size_feet:.2f} feet...")  # ADD
-        buffer_area_m2 = np.pi * (buffer_size_m**2) # area in meters
+        print(f"Creating buffers of {buffer_size_m} m...")  # ADD
+        buffer_area_m2 = np.pi * (buffer_size_m**2) # area in kilometers
 
         points_gdf["buffer"] = points_gdf.geometry.buffer(buffer_size_feet)
 
@@ -430,38 +364,44 @@ def volume_per_buffer(buildings_gdf):
 
         # for each point in pollen survey
         for i, row in points_gdf.iterrows():
-            if i % 5 == 0:  # ADD - print every 5 points
-                print(f"  Processing point {i}/{len(points_gdf)}...")
-            try:
-                buffer_geom = row['buffer']
+            buffer_geom = row['buffer']
 
-                # check for possible intersections against all buildings for more efficient runtime
-                possible_i = list(buildings_sindex.intersection(buffer_geom.bounds)) # checks if bounding boxes of spatial index overlaps with those of buffer
-                possible_matches = buildings_gdf.iloc[possible_i]
-                # check for preciuse intersections
+            possible_i = list(buildings_sindex.intersection(buffer_geom.bounds)) # checks if bounding boxes of spatial index overlaps with those of buffer
+            possible_matches = buildings_gdf.iloc[possible_i]
+            # check for precise intersections (either fractional / centroid method) - fractional method has a lower MAE (see additional_info.txt)
+            
+            # intersections = possible_matches[possible_matches.centroid.within(buffer_geom)] used for centroid method
+            intersections = possible_matches[possible_matches.intersects(buffer_geom)]
 
-                intersections = possible_matches[possible_matches.intersects(buffer_geom)]
+            total_volume_ft3 = 0.0
+            
+            for i, building in intersections.iterrows():
+                try:
+                    intersection_geom = buffer_geom.intersection(building.geometry)
+                    intersection_area_ft2 = intersection_geom.area
+                    building_area_ft2 = building['area']
 
-                if len(intersections) == 0:
-                    print("no intersections (your code is def wrong)")
-                    volume_densities.append(0.0)
+                    if building_area_ft2 > 0:
+                        fraction = intersection_area_ft2/building_area_ft2
+
+                        proportional_vol_ft3 = fraction * building['volume']
+                        total_volume_ft3 += proportional_vol_ft3
+                except Exception as e:
                     continue
 
-                # take sum of all building volumes in buffer
-                total_volume_ft3 = intersections['volume'].sum()
+            if len(intersections) == 0:
+                print("No intersections for this buffer?")
+                volume_densities.append(0.0)
+                continue
 
-                ft3_to_m3 = 35.31469989 # 35.31469989 ft3 per m3
+            # take sum of all building volumes in buffer
+            # total_volume_ft3 = intersections['volume'].sum() for centroid method
+            ft3_to_m3 = 35.31469989 # 35.31469989 ft3 per m3
+            total_volume_m3 = total_volume_ft3/ft3_to_m3
+            density = total_volume_m3 / buffer_area_m2
+            print(f"density: {density}m")
+            volume_densities.append(round(density,4))
 
-                total_volume_m3 = total_volume_ft3/ft3_to_m3
-
-                density = total_volume_m3 / buffer_area_m2
-
-                volume_densities.append(round(density,4))
-
-            except Exception as e:
-                print(f"Error processing point {i} at buffer {buffer_size_m}m: {str(e)}")
-                volume_densities.append(np.nan)
-            
         print(f"\n  Completed {buffer_size_m}m buffer")
 
         pollen_data[f'building_vol_density_{buffer_size_m}m'] = volume_densities
@@ -472,15 +412,20 @@ def volume_per_buffer(buildings_gdf):
 
         
      
-
-# tree_coverage_percentage(tree_coverage_raster_filepath)
-# elevation_statistics(elevation_filepath)
-# compareToStudy("tree_canopy_pct")
-
 print("running......")
-gdf = volume_buildings_gdf()
-print("gdf created")
-volume_per_buffer(gdf)
-print("done!")
+# add elevation / tree cover statistics to final output
+tree_coverage_percentage(tree_coverage_raster_filepath)
+elevation_statistics(elevation_filepath)
 
-# compareToStudy('building_vol_density')
+buildings2013() #create first buildings dataset using API and assign to buildings_df_pathname
+buildings_df = pd.read_csv(building_df_filepath)
+filter_buildingsdf(buildings_df) # filter buildings by borough and assing to filtered_buildings_df_pathname
+filtered_buildings_df = pd.read_csv(filtered_building_df_filepath)
+filtered_buildings_gdf = volume_buildings_gdf(filtered_buildings_df) # create and return gdf with volume, area, height for future analysis 
+volume_per_buffer(filtered_buildings_gdf) # find density of volume per buffer and add to final df
+print("done")
+
+
+
+
+
