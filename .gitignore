@@ -10,3 +10,10 @@ data/joined_data
 .env
 /Users/wenggeiwong/Pollen_Mapping/data/land_use_data/results.csv
 /Users/wenggeiwong/Pollen_Mapping/data/land_use_data/results.csv
+/Users/wenggeiwong/Pollen_Mapping/Pollen_Mapping.Rproj
+/Users/wenggeiwong/Pollen_Mapping/hi.py
+lib/
+pollen_mapping_data/
+/Users/wenggeiwong/Pollen_Mapping/pollen_mapping_data
+.DS_Store
+rm '.DS_Store'
