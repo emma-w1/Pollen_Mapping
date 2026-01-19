@@ -1,4 +1,4 @@
-# replicating land use regression from Weinberger et. al 2016
+# reproducing variables for land use regression model from Weinberger et. al 2016
 
 import pandas as pd
 import rasterio
