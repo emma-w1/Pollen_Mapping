@@ -59,6 +59,13 @@ Comparison performed in compare_to_study method, perform Mean Absolute Error to 
     1 km	0.0	1.4	3.4	6.8	6.2	34.2
     '''
 
+    Point elevation (feet)	
+    Variable	Min	p25*	p50*	Mean	p75*	Max		
+    4.8 	13.5	38.5	61.3	76.3	283.3
+
+    Distance to water (feet)
+    Variable	Min	p25*	p50*	Mean	p75*	Max		
+    38.6	670.7	1638.0	1881.0	2951.0	4779.0
 
 Comparison for Distributed Building Height:
 

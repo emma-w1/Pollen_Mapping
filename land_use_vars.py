@@ -15,6 +15,8 @@ from shapely.geometry import shape
 import json
 from shapely.geometry import box
 import ast
+import fiona
+
 
 
 
@@ -24,15 +26,16 @@ conversion_factor = 3.280839895
 buffer_sizes_feet = [buffer*conversion_factor for buffer in buffer_sizes]
 
 output_csv_path="/Users/wenggeiwong/pollen_mapping_data/land_use_data/results.csv" # EPSG:4326 (latitude/longitude coordinates)
-tree_coverage_raster_filepath='/Users/wenggeiwong/landcover_2010_nyc_3ft.img' # EPSG:2263
+tree_coverage_raster_filepath='/Users/wenggeiwong/pollen_mapping_data/landcover_2010_nyc_3ft.img' # EPSG:4326
 
 pollen_filepath="/Users/wenggeiwong/pollen_mapping_data/pollen.csv" 
-pollen_data = pd.read_csv(pollen_filepath)
-pollen_data = pollen_data[(pollen_data["Borough"]=="Manhattan") | (pollen_data["Borough"]=="Bronx")] # EPSG:4326 (latitude/longitude coordinates)
+pollen_data = pd.read_csv(pollen_filepath) # EPSG:4326 (latitude/longitude coordinates)
+pollen_data = pollen_data[(pollen_data["Borough"]=="Manhattan") | (pollen_data["Borough"]=="Bronx")]
 
 elevation_filepath = "/Users/wenggeiwong/NYC_DEM_1ft_Float_2/DEM_LiDAR_1ft_2010_Improved_NYC.img" # EPSG:2263
 building_df_filepath = "/Users/wenggeiwong/pollen_mapping_data/land_use_data/2013_buildings.csv" #EPSG:4326
 filtered_building_df_filepath = "/Users/wenggeiwong/pollen_mapping_data/land_use_data/2013_buildings_filtered.csv" #EPSG:4326
+nyc_planimetrics_filepath = "/Users/wenggeiwong/pollen_mapping_data/HYDROGRAPHY_2008_4708806951406562133.geojson" #ESPG:2263
 
 def tree_coverage_percentage(raster_filepath):
     with rasterio.open(raster_filepath) as src:
@@ -89,18 +92,23 @@ def tree_coverage_percentage(raster_filepath):
             pollen_data[f'tree_canopy_pct_{int(buffer_size/conversion_factor)}m'] = tree_canopy_pcts
         
     pollen_data.to_csv(output_csv_path, index=False)
-    print(f"Results saved to {output_csv_path}")
+    print(f"Tree canopy results saved to {output_csv_path}")
     return pd.read_csv(output_csv_path)
 
-def compareToStudy(variable):
+def compare_to_study_buffer(variable):
     data = pd.read_csv(output_csv_path)
     # data = tree_coverage_percentage()
-
+    print(variable)
     # to compare with paper findings: 
     for buffer in buffer_sizes:
         print(f"{buffer} m: min - {data[f'{variable}_{buffer}m'].min()}, p25 - {np.percentile(data[f'{variable}_{buffer}m'],25)}, p50 - {np.percentile(data[f'{variable}_{buffer}m'],50)}, mean - {data[f'{variable}_{buffer}m'].mean()}, p75 - {np.percentile(data[f'{variable}_{buffer}m'],75)}, max - {data[f'{variable}_{buffer}m'].max()}")
+    print("\n")
 
-
+def compare_to_study_point(variable):
+    data = pd.read_csv(output_csv_path)
+    print(variable)
+    print(f"min - {data[variable].min()}, p25 - {np.percentile(data[variable],25)}, p50 - {np.percentile(data[variable],50)}, mean - {data[variable].mean()}, p75 - {np.percentile(data[variable],75)}, max - {data[variable].max()}")
+    print("\n")
 
 def elevation_statistics(raster_filepath):
     with rasterio.open(raster_filepath) as src:
@@ -110,8 +118,7 @@ def elevation_statistics(raster_filepath):
         geometry = [Point(xy) for xy in zip(pollen_data['Longitude'], pollen_data['Latitude'])]
         gdf = gpd.GeoDataFrame(pollen_data, geometry=geometry, crs='EPSG:4326')
 
-        if gdf.crs != raster_crs: # convert to EPSG:2263
-            gdf = gdf.to_crs(raster_crs)
+        gdf = gdf.to_crs("EPSG:2263")
 
         # find point elevations:
         point_elevations = []
@@ -165,6 +172,7 @@ def elevation_statistics(raster_filepath):
                     max_elevations.append(round(max_elev, 2))
                     min_elevations.append(round(min_elev, 2))
                     mean_elevations.append(round(mean_elev, 2))
+
                 except Exception as e:
                     print(f"Error processing point {i} at buffer {buffer_size}m: {str(e)}")
                     max_elevations.append(np.nan)
@@ -176,7 +184,7 @@ def elevation_statistics(raster_filepath):
             pollen_data[f'elevation_mean_{int(buffer_size/conversion_factor)}m'] = mean_elevations
 
     pollen_data.to_csv(output_csv_path, index=False)
-    print(f"Results saved to {output_csv_path}")
+    print(f"Elevation results saved to {output_csv_path}")
     return pd.read_csv(output_csv_path)
 
 #create first buildings dataset using API and assign to buildings_df_pathname
@@ -270,8 +278,8 @@ def buildings2013():
     print(f"\nTotal buildings in 2013 dataset: {len(all_buildings_2013)}")
 
     client.close()
-    # all_buildings_2013.to_csv(building_df_filepath)
-    print(f'Not saved to {building_df_filepath}; not altered when run')
+    all_buildings_2013.to_csv(building_df_filepath)
+    print(f'All buildings from 2013 results not saved to {building_df_filepath}; not altered when run')
     return all_buildings_2013
 
 # filter buildings by borough and assing to filtered_buildings_df_pathname
@@ -295,9 +303,9 @@ def filter_buildingsdf(buildings_df):
         filtered_buildings_gdf = buildings_gdf[buildings_gdf.intersects(combined_bbox_polygon)]
         filtered_buildings_df = pd.DataFrame(filtered_buildings_gdf)
         filtered_buildings_df['the_geom'] = filtered_buildings_gdf.geometry.apply(lambda geom: geom.wkt)
-        # filtered_buildings_df.to_csv(filtered_building_df_filepath, index=False)
+        filtered_buildings_df.to_csv(filtered_building_df_filepath, index=False)
         print(f"Finished filtering! length of unfiltered: {len(buildings_df)}, length of filtered: {len(filtered_buildings_df)}")
-        print(f"Results not saved to {filtered_building_df_filepath}; method already run")
+        print(f"Filtered buildings results not saved to {filtered_building_df_filepath}; method already run")
         return filtered_buildings_df # returns in EPSG:4326
 
  # create and return gdf with volume, area, height for future analysis 
@@ -407,23 +415,66 @@ def volume_per_buffer(buildings_gdf):
         pollen_data[f'building_vol_density_{buffer_size_m}m'] = volume_densities
     
     pollen_data.to_csv(output_csv_path, index=False)
-    print(f"\nResults saved to {output_csv_path}")
+    print(f"\nBuilding density results saved to {output_csv_path}")
     return pollen_data
+
+# finds the distance to nearest body of water, adds column to output, returns & saved pollen_data to file
+def distWater(geojson_filepath): 
+    hydrography_gdf = gpd.read_file(geojson_filepath, crs="EPSG:2263")
+    geometry = [Point(xy) for xy in zip(pollen_data["Longitude"], pollen_data["Latitude"])] 
+    points_gdf = gpd.GeoDataFrame(pollen_data,geometry=geometry,crs="EPSG:4326")
+    points_gdf = points_gdf.to_crs("EPSG:2263")
+    hydrography_gdf = hydrography_gdf.to_crs("EPSG:2263")
+    
+    min_distances = []
+
+    for i, row in points_gdf.iterrows():
+        current_point = row['geometry']
+        current_point_4326 = gpd.GeoSeries(current_point, crs="EPSG:2263").to_crs("EPSG:4326").iloc[0]
+        longitude = current_point_4326.x
+        latitude = current_point_4326.y
+
+        distances = hydrography_gdf.distance(current_point)
+        min_distance = round(min(distances),4)
+        # print(f'Distance to nearest body of water at ({longitude}, {latitude}): {min_distance}')
+        min_distances.append(min_distance)
+
+    pollen_data['distance_water'] = min_distances
+    pollen_data.to_csv(output_csv_path)
+    print(f"\nWater body distance results saved to {output_csv_path}")
+    return pollen_data
+
+
 
         
      
 print("running......")
-# add elevation / tree cover statistics to final output
-tree_coverage_percentage(tree_coverage_raster_filepath)
-elevation_statistics(elevation_filepath)
+if input("say enter yes to continue:\n") == "yes":
 
-buildings2013() #create first buildings dataset using API and assign to buildings_df_pathname
-buildings_df = pd.read_csv(building_df_filepath)
-filter_buildingsdf(buildings_df) # filter buildings by borough and assing to filtered_buildings_df_pathname
-filtered_buildings_df = pd.read_csv(filtered_building_df_filepath)
-filtered_buildings_gdf = volume_buildings_gdf(filtered_buildings_df) # create and return gdf with volume, area, height for future analysis 
-volume_per_buffer(filtered_buildings_gdf) # find density of volume per buffer and add to final df
-print("done")
+    # # add elevation / tree cover statistics to final output
+    # tree_coverage_percentage(tree_coverage_raster_filepath)
+    # elevation_statistics(elevation_filepath)
+    # distWater(nyc_planimetrics_filepath)
+
+    # # buildings2013() #create first buildings dataset using API and assign to buildings_df_pathname, not altering file for now
+    # buildings_df = pd.read_csv(building_df_filepath)
+    # # filter_buildingsdf(buildings_df) # filter buildings by borough and assing to filtered_buildings_df_pathname, not altering file for now
+    # filtered_buildings_df = pd.read_csv(filtered_building_df_filepath)
+    # filtered_buildings_gdf = volume_buildings_gdf(filtered_buildings_df) # create and return gdf with volume, area, height for future analysis 
+    # volume_per_buffer(filtered_buildings_gdf) # find density of volume per buffer and add to final df
+    
+    # previous lines comment out because results.csv contains all necessary data
+
+    compare_to_study_point("distance_water")
+    compare_to_study_buffer("tree_canopy_pct")
+    compare_to_study_point("point_elevation")
+    compare_to_study_buffer("elevation_max")
+    compare_to_study_buffer("elevation_min")
+    compare_to_study_buffer("elevation_mean")
+    compare_to_study_buffer("building_vol_density")
+
+    print("done!")
+    print("after code completes make sure to comment method calls to buildings2013 and filter_buildingsdf to reduce future runtime")
 
 
 
