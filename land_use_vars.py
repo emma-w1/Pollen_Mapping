@@ -26,7 +26,7 @@ conversion_factor = 3.280839895
 buffer_sizes_feet = [buffer*conversion_factor for buffer in buffer_sizes]
 
 output_csv_path="/Users/wenggeiwong/pollen_mapping_data/land_use_data/results.csv" # EPSG:4326 (latitude/longitude coordinates)
-tree_coverage_raster_filepath='/Users/wenggeiwong/pollen_mapping_data/landcover_2010_nyc_3ft.img' # EPSG:4326
+tree_coverage_raster_filepath='/Users/wenggeiwong/pollen_mapping_data/landcover_2010_nyc_3ft.img' # EPSG:2263
 
 pollen_filepath="/Users/wenggeiwong/pollen_mapping_data/pollen.csv" 
 pollen_data = pd.read_csv(pollen_filepath) # EPSG:4326 (latitude/longitude coordinates)
