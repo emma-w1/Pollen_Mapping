@@ -15,10 +15,6 @@ from shapely.geometry import shape
 import json
 from shapely.geometry import box
 import ast
-import fiona
-
-
-
 
 
 buffer_sizes = [50,100,250,500,1000]
