@@ -290,7 +290,18 @@ residualChecks <- function(model,formula){
     plot(model)
 }
 
-convertToRaster <- function()
+convertToRaster <- function(model,resolution=100){ # area bbox determined in by replicating land_use_vars.py code
+    area_bbox = c(40.68291695, 40.91553278,-74.04772963,-73.76533244)
+    r <- rast(
+        xmin = area_bbox[1],
+        xmax = area_bbox[2],
+        ymin = area_bbox[3],
+        ymax = area_bbox[4],
+        crs = "EPSG:2263" # to match raster files from NYC Open Data
+    )
+
+    coords <- crds(r)
+}
 
 # prepare data
 log_col_name <- logTransform("Influx_trees")
