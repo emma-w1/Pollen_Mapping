@@ -18,8 +18,6 @@ library(broom)
 library(rstatix)
 
 
-# TO-DO: reformat file structure so that unsignificant & significant findings are separated in anova_results & welch's anova results
-
 options(scipen = 999)
 
 

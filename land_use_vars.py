@@ -26,11 +26,10 @@ tree_coverage_raster_filepath='/Users/wenggeiwong/pollen_mapping_data/landcover_
 
 pollen_filepath="/Users/wenggeiwong/pollen_mapping_data/pollen.csv" 
 pollen_data = pd.read_csv(pollen_filepath) # EPSG:4326 (latitude/longitude coordinates)
-pollen_data = pollen_data[(pollen_data["Borough"]=="Manhattan") | (pollen_data["Borough"]=="Bronx")]
+
 
 elevation_filepath = "/Users/wenggeiwong/NYC_DEM_1ft_Float_2/DEM_LiDAR_1ft_2010_Improved_NYC.img" # EPSG:2263
 building_df_filepath = "/Users/wenggeiwong/pollen_mapping_data/land_use_data/2013_buildings.csv" #EPSG:4326
-filtered_building_df_filepath = "/Users/wenggeiwong/pollen_mapping_data/land_use_data/2013_buildings_filtered.csv" #EPSG:4326
 nyc_planimetrics_filepath = "/Users/wenggeiwong/pollen_mapping_data/HYDROGRAPHY_2008_4708806951406562133.geojson" #ESPG:2263
 
 def tree_coverage_percentage(raster_filepath):
@@ -41,7 +40,7 @@ def tree_coverage_percentage(raster_filepath):
         gdf = gpd.GeoDataFrame(pollen_data, geometry=geometry, crs='EPSG:4326')
 
         if gdf.crs != raster_crs:
-                    gdf = gdf.to_crs(raster_crs) # converts to EPSG:2263
+            gdf = gdf.to_crs(raster_crs) # converts to EPSG:2263
         # iterate through each possible buffer size          
         for buffer_size in buffer_sizes_feet:
 
@@ -278,34 +277,26 @@ def buildings2013():
     print(f'All buildings from 2013 results not saved to {building_df_filepath}; not altered when run')
     return all_buildings_2013
 
-# filter buildings by borough and assing to filtered_buildings_df_pathname
-def filter_buildingsdf(buildings_df):
-        # filter to manhattan/bronx bounding box
-        borough_df = pd.read_csv("/Users/wenggeiwong/pollen_mapping_data/Borough_Boundaries_20260116.csv") # EPSG:4362
-        borough_df = borough_df[(borough_df['BoroName']=='Manhattan') | (borough_df['BoroName']=='Bronx')]
-        borough_df['geometry'] = borough_df['the_geom'].apply(wkt.loads)
-        borough_gdf = gpd.GeoDataFrame(borough_df, geometry='geometry', crs="EPSG:4362")
+# adds geometry column to buildings_df
+def geom_buildingsdf(buildings_df):
 
-        combined_bounds_tuple = borough_gdf.total_bounds
-        combined_bbox_polygon = box(*combined_bounds_tuple)
-
-        def load_geometry(geojson_data):
-            return shape(ast.literal_eval(geojson_data) )
+        def load_geometry(wkt_str):
+            try:
+                return wkt.loads(wkt_str)
+            except Exception:
+                return None
         
         buildings_df['geometry'] = buildings_df['the_geom'].apply(load_geometry)
         buildings_df = buildings_df.dropna(subset=['geometry'])
 
-        buildings_gdf = gpd.GeoDataFrame(buildings_df,geometry='geometry', crs="EPSG:4362")
-        filtered_buildings_gdf = buildings_gdf[buildings_gdf.intersects(combined_bbox_polygon)]
-        filtered_buildings_df = pd.DataFrame(filtered_buildings_gdf)
-        filtered_buildings_df['the_geom'] = filtered_buildings_gdf.geometry.apply(lambda geom: geom.wkt)
-        filtered_buildings_df.to_csv(filtered_building_df_filepath, index=False)
-        print(f"Finished filtering! length of unfiltered: {len(buildings_df)}, length of filtered: {len(filtered_buildings_df)}")
-        print(f"Filtered buildings results not saved to {filtered_building_df_filepath}; method already run")
-        return filtered_buildings_df # returns in EPSG:4326
+        buildings_gdf = gpd.GeoDataFrame(buildings_df,geometry='geometry', crs="EPSG:4326")
+        buildings_df = pd.DataFrame(buildings_gdf)
+        buildings_df['the_geom'] = buildings_gdf.geometry.apply(lambda geom: geom.wkt)
+        buildings_df.to_csv(building_df_filepath, index=False)
+        return buildings_df # returns in EPSG:4326
 
  # create and return gdf with volume, area, height for future analysis 
-def volume_buildings_gdf(filtered_buildings_df):
+def volume_buildings_gdf(buildings_df_path):
 
     def get_geometry(geom_str):
         try:
@@ -322,23 +313,23 @@ def volume_buildings_gdf(filtered_buildings_df):
             return None
 
 
-
-    filtered_buildings_df = filtered_buildings_df[filtered_buildings_df["geometry"].notna()]
-    filtered_buildings_df["geometry"] = filtered_buildings_df["the_geom"].apply(get_geometry)
-    filtered_buildings_gdf = gpd.GeoDataFrame(filtered_buildings_df, geometry='geometry', crs="EPSG:4326") 
+    buildings_df = pd.read_csv(buildings_df_path)
+    buildings_df = buildings_df[buildings_df["geometry"].notna()]
+    buildings_df["geometry"] = buildings_df["the_geom"].apply(get_geometry)
+    buildings_gdf = gpd.GeoDataFrame(buildings_df, geometry='geometry', crs="EPSG:4326") 
 
     # reprojecting because we need to find area in feet
-    filtered_buildings_gdf = filtered_buildings_gdf.to_crs("EPSG:2263")
+    buildings_gdf = buildings_gdf.to_crs("EPSG:2263")
 
     # volume calculations
-    filtered_buildings_gdf["height"] = pd.to_numeric(filtered_buildings_gdf["height_roof"], errors='coerce') # height_roof is height from ground in feet
-    filtered_buildings_gdf = filtered_buildings_gdf[filtered_buildings_gdf["height"].notna() & (filtered_buildings_gdf['height'] > 0)]
-    filtered_buildings_gdf["area"] = filtered_buildings_gdf["area"] = filtered_buildings_gdf.geometry.area # in sq feet
-    filtered_buildings_gdf["volume"] = filtered_buildings_gdf["area"]* filtered_buildings_gdf["height"] # in cubic feet
+    buildings_gdf["height"] = pd.to_numeric(buildings_gdf["height_roof"], errors='coerce') # height_roof is height from ground in feet
+    buildings_gdf = buildings_gdf[buildings_gdf["height"].notna() & (buildings_gdf['height'] > 0)]
+    buildings_gdf["area"] = buildings_gdf["area"] = buildings_gdf.geometry.area # in sq feet
+    buildings_gdf["volume"] = buildings_gdf["area"]* buildings_gdf["height"] # in cubic feet
 
-    print(f"Buildings with valid geometry and height: {len(filtered_buildings_gdf)}")
+    print(f"Buildings with valid geometry and height: {len(buildings_gdf)}")
     print("Finished creating filtered_buildings_gdf")
-    return filtered_buildings_gdf # in EPSG:4326
+    return buildings_gdf # in EPSG:4326
 
 
 # find density of volume per buffer and add to final df
@@ -445,19 +436,18 @@ def distWater(geojson_filepath):
         
      
 print("running......")
-if input("say enter yes to continue:\n") == "yes":
+if input("enter yes to continue:\n") == "yes":
 
-    # # add elevation / tree cover statistics to final output
-    # tree_coverage_percentage(tree_coverage_raster_filepath)
-    # elevation_statistics(elevation_filepath)
-    # distWater(nyc_planimetrics_filepath)
+    # add elevation / tree cover statistics to final output
+    tree_coverage_percentage(tree_coverage_raster_filepath)
+    elevation_statistics(elevation_filepath)
+    distWater(nyc_planimetrics_filepath)
 
-    # # buildings2013() #create first buildings dataset using API and assign to buildings_df_pathname, not altering file for now
-    # buildings_df = pd.read_csv(building_df_filepath)
-    # # filter_buildingsdf(buildings_df) # filter buildings by borough and assing to filtered_buildings_df_pathname, not altering file for now
-    # filtered_buildings_df = pd.read_csv(filtered_building_df_filepath)
-    # filtered_buildings_gdf = volume_buildings_gdf(filtered_buildings_df) # create and return gdf with volume, area, height for future analysis 
-    # volume_per_buffer(filtered_buildings_gdf) # find density of volume per buffer and add to final df
+    # buildings2013() #create first buildings dataset using API and assign to buildings_df_pathname, not altering file for now
+    buildings_df = pd.read_csv(building_df_filepath)
+    # geom_buildingsdf(buildings_df) # filter buildings by borough and assing to filtered_buildings_df_pathname, don't run because we need full analysis
+    buildings_gdf = volume_buildings_gdf(building_df_filepath) # create and return gdf with volume, area, height for future analysis 
+    volume_per_buffer(buildings_gdf) # find density of volume per buffer and add to final df
     
     # previous lines comment out because results.csv contains all necessary data
 
@@ -471,8 +461,5 @@ if input("say enter yes to continue:\n") == "yes":
 
     print("done!")
     print("after code completes make sure to comment method calls to buildings2013 and filter_buildingsdf to reduce future runtime")
-
-
-
 
 

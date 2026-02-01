@@ -1,3 +1,4 @@
+# TO-DO: improve poly formula to include 3 tests (adjusted r2, vif, p)
 library(tidyverse)
 library(glue)
 library(car)
@@ -150,7 +151,7 @@ basicLUR <- function(log_col_name,selected_var_cols){
 
         # check if current var_name is included in model
 
-        if(var_p_val < 0.05 && new_adjusted_r2 > current_adjusted_r2){ # && var_vif < 2.0
+        if(var_p_val < 0.05 && new_adjusted_r2 > current_adjusted_r2 && var_vif < 2.0){ 
             included_vars <- c(included_vars, var_name) 
             current_model <- new_model
             current_formula <- new_formula
@@ -290,39 +291,78 @@ residualChecks <- function(model,formula){
     plot(model)
 }
 
-convertToRaster <- function(model,resolution=100){ # area bbox determined in by replicating land_use_vars.py code
-    area_bbox = c(40.68291695, 40.91553278,-74.04772963,-73.76533244)
-    r <- rast(
-        xmin = area_bbox[1],
-        xmax = area_bbox[2],
-        ymin = area_bbox[3],
-        ymax = area_bbox[4],
-        crs = "EPSG:2263" # to match raster files from NYC Open Data
-    )
+tree_canopy_500m_path <- "/Users/wenggeiwong/tree_percentage_500.tif"
+elevation_min_500m_path <- "/Users/wenggeiwong/elevation_min_500m.tif"
 
-    coords <- crds(r)
+convertToRaster <- function(model,model_type,resolution=30){
+    # # area_bbox = c(40.68291695, 40.91553278,-74.04772963,-73.76533244) # this is for only manhattan and bronx
+    # area_bbox = c(913153.3, 1073155, 112931.8, 272933.8)
+    # 
+    # r <- rast(
+    #     xmin = area_bbox[1],
+    #     xmax = area_bbox[2],
+    #     ymin = area_bbox[3],
+    #     ymax = area_bbox[4],
+    #     crs = "EPSG:2263" # to match raster files from NYC Open Data
+    # )
+    # coords <- crds(r)
+
+    # prediction rasters
+    tree_canopy <- rast(tree_canopy_500m_path)
+    elevation <- rast(elevation_min_500m_path)
+    # BUILDINGS HERE 
+
+    if(model_type == "original"){
+        predictors <- c(tree_canopy)
+        names(predictors) <- c("tree_canopy_pct_500m")
+    }else{
+        predictors <- c(tree_canopy,elevation) # add business here later
+        names(predictors) <- c("tree_canopy_pct_500m","min_elevation_500m") # and here
+    }
+    predictions <- predict(model = model, object = predictors, na.rm= TRUE) 
+    # convert from log transform to actual values
+    predictions <- exp(predictions)
+    
+    writeRaster(predictions, glue("/Users/wenggeiwong/pollen_mapping_data/{model_type}_pollen_prediction_map.tif"))
+    return(predictions)
 }
+
 
 # prepare data
 log_col_name <- logTransform("Influx_trees")
 removeLogOutliers(log_col_name)
 selected_vars <- selectVars(log_col_name)
 
+# model from paper
+original_model_result <- basicLUR(log_col_name,list(tree_canopy_pct="tree_canopy_pct_500m"))
+original_model <- original_model_result$model
+original_model_formula <- original_model_result$formula
+print(summary(original_model))
+
+original_raster <- convertToRaster(original_model, "original")
+
 # basic model
-# basic_model_result <- basicLUR(log_col_name,selected_vars)
-# basic_model <- basic_model_result$model
-# basic_model_formula <- basic_model_result$formula
-# print(summary(basic_model))
+basic_model_result <- basicLUR(log_col_name,selected_vars)
+basic_model <- basic_model_result$model
+basic_model_formula <- basic_model_result$formula
+print(summary(basic_model))
 
 # polynomial model w/ k-fold cross verification has improved performance; residuals seem to indicate acceptable fit
-cv_results <- crossValidation(log_col_name,selected_vars)
-poly_model_result <- polynomialModel(cv_results)
-poly_model <- poly_model_result$model
-poly_model_formula <- poly_model_result$formula
-print(summary(poly_model))
+# cv_results <- crossValidation(log_col_name,selected_vars)
+# poly_model_result <- polynomialModel(cv_results)
+# poly_model <- poly_model_result$model
+# poly_model_formula <- poly_model_result$formula
+# print(summary(poly_model))
 
 # check residuals
 # residualChecks(basic_model,basic_model_formula)
+
+
+
+
+
+
+
 
 
 
