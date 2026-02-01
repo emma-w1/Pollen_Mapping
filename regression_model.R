@@ -1,4 +1,4 @@
-# TO-DO: improve poly formula to include 3 tests (adjusted r2, vif, p)
+# TO-DO: ALLOW POLY FORMULA TO USE COMBINATIONS OF SELECTED (instead of requiring all variables to be included), try to increase resolution (ask abt better CPU capabilities)
 library(tidyverse)
 library(glue)
 library(car)
@@ -126,7 +126,6 @@ selectVars <- function(log_col_name){
 basicLUR <- function(log_col_name,selected_var_cols){
     # r for 500m tree coverage buffer is .736 and 250m is .743 but 500m may be better because plot of residuals has less of a pattern
     vars <- unlist(selected_var_cols)
-    vars <- vars[vars != "tree_canopy_pct_250m_x_building_vol_density_1000m"]# exclude for now bc it inflates vif
     current_formula <- as.formula(paste(log_col_name, "~1"))
     current_model <- lm(current_formula, data=pollen_data)
     current_adjusted_r2 <- summary(current_model)$adj.r.squared
@@ -164,7 +163,7 @@ basicLUR <- function(log_col_name,selected_var_cols){
     return(list(model=current_model,formula=current_formula))
 }
 
-createPolyConfig <- function(selected_vars_list,max_degree=3){
+createPolyConfig <- function(selected_vars_list,max_degree=4){
     var_names <- names(selected_vars_list)
     var_names <- var_names[var_names != "interaction"]
 
@@ -205,6 +204,12 @@ crossValidation <- function(log_col_name,selected_vars_list){
     selected_vars <- unlist(selected_vars_list)
     complete_data <- pollen_data[complete.cases(pollen_data[c(log_col_name, selected_vars)]), ]
     poly_configs <- createPolyConfig(selected_vars_list)
+    
+    baseline_formula <- as.formula(paste(log_col_name,"~",paste(selected_vars,collapse=" + ")))
+    baseline_lm <- lm(baseline_formula, data=complete_data)
+    baseline_adjusted_r2 <- summary(baseline_lm)$adj.r.squared
+
+    print(glue("Baseline adj. r2: {baseline_adjusted_r2}"))
 
     cv_results <- list()
 
@@ -218,20 +223,40 @@ crossValidation <- function(log_col_name,selected_vars_list){
 
         cv_model <- train(model_formula, data=complete_data,method="lm",trControl=train_control)
 
+        lm_fit <- cv_model$finalModel
+        lm_summary <- summary(lm_fit)
+        print(lm_summary)
+        p_vals <- lm_summary$coefficients[-1,"Pr(>|t|)"] # for each variable
+        all_significant <- all(p_vals <= 0.05)
+
+        adj_r2 <- lm_summary$adj.r.squared
+        adj_r2_improves <- adj_r2 > baseline_adjusted_r2
+
+        vifs <- vif(lm_fit)
+        vif_passes <- all(vifs < 2)
+
+
+
         cv_results[[i]] <- list(
             config=config,
             formula=formula_str,
             rmse=cv_model$results$RMSE,
             r_squared=cv_model$results$r_squared,
-            mae=cv_model$results$MAE
+            mae=cv_model$results$MAE,
+            adj_r2 = adj_r2,
+            all_significant = all_significant,
+            vif_passes = vif_passes,
+            passes_all_reqs = all_significant & vif_passes & adj_r2_improves
         )
 
         config_str <- paste(names(config),"=",config,collapse=", ")
 
-        print(glue("Config {i}: {config_str} | RMSE={round(cv_model$results$RMSE, 4)}, R2={round(cv_model$results$Rsquared, 4)}\n"))
+        print(glue("Config {i}: {config_str} | P={all_significant} | adj_r2={adj_r2_improves} | VIF={vif_passes} | RMSE={round(cv_model$results$RMSE, 4)}, R2={round(cv_model$results$Rsquared, 4)}\n"))
     }
 
-    rmse_results <- sapply(cv_results,function(x) x$rmse)
+    valid_results <- Filter(function(x) x$passes_all_reqs==TRUE, cv_results)
+    print(valid_results)
+    rmse_results <- sapply(valid_results,function(x) x$rmse)
     best_i <- which.min(rmse_results)
     best_config <- cv_results[[best_i]]
 
@@ -249,6 +274,10 @@ crossValidation <- function(log_col_name,selected_vars_list){
         df$rmse <- result$rmse
         df$r_squared <- result$r_squared
         df$mae <- result$mae
+        df$adj_r2 <- result$adj_r2
+        df$all_significant <- result$all_significant
+        df$vif_passes <- result$vif_passes
+        df$passes_all_reqs <- result$passes_all_reqs
         return(df)
     }
 
@@ -334,25 +363,25 @@ removeLogOutliers(log_col_name)
 selected_vars <- selectVars(log_col_name)
 
 # model from paper
-original_model_result <- basicLUR(log_col_name,list(tree_canopy_pct="tree_canopy_pct_500m"))
-original_model <- original_model_result$model
-original_model_formula <- original_model_result$formula
-print(summary(original_model))
-
-original_raster <- convertToRaster(original_model, "original")
+# original_model_result <- basicLUR(log_col_name,list(tree_canopy_pct="tree_canopy_pct_500m"))
+# original_model <- original_model_result$model
+# original_model_formula <- original_model_result$formula
+# print(summary(original_model))
+# 
+# original_raster <- convertToRaster(original_model, "original")
 
 # basic model
-basic_model_result <- basicLUR(log_col_name,selected_vars)
-basic_model <- basic_model_result$model
-basic_model_formula <- basic_model_result$formula
-print(summary(basic_model))
+# basic_model_result <- basicLUR(log_col_name,selected_vars)
+# basic_model <- basic_model_result$model
+# basic_model_formula <- basic_model_result$formula
+# print(summary(basic_model))
 
 # polynomial model w/ k-fold cross verification has improved performance; residuals seem to indicate acceptable fit
-# cv_results <- crossValidation(log_col_name,selected_vars)
-# poly_model_result <- polynomialModel(cv_results)
-# poly_model <- poly_model_result$model
-# poly_model_formula <- poly_model_result$formula
-# print(summary(poly_model))
+cv_results <- crossValidation(log_col_name,selected_vars)
+poly_model_result <- polynomialModel(cv_results)
+poly_model <- poly_model_result$model
+poly_model_formula <- poly_model_result$formula
+print(summary(poly_model))
 
 # check residuals
 # residualChecks(basic_model,basic_model_formula)

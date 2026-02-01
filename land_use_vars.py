@@ -277,6 +277,32 @@ def buildings2013():
     print(f'All buildings from 2013 results not saved to {building_df_filepath}; not altered when run')
     return all_buildings_2013
 
+# prev. code used to filter to only Manhattan and Bronx, may be useful if we want a more accurate analysis in the future
+# def filter_buildingsdf(buildings_df):
+#         # filter to manhattan/bronx bounding box
+#         borough_df = pd.read_csv("/Users/wenggeiwong/pollen_mapping_data/Borough_Boundaries_20260116.csv") # EPSG:4362
+#         borough_df = borough_df[(borough_df['BoroName']=='Manhattan') | (borough_df['BoroName']=='Bronx')]
+#         borough_df['geometry'] = borough_df['the_geom'].apply(wkt.loads)
+#         borough_gdf = gpd.GeoDataFrame(borough_df, geometry='geometry', crs="EPSG:4362")
+
+#         combined_bounds_tuple = borough_gdf.total_bounds
+#         combined_bbox_polygon = box(*combined_bounds_tuple)
+
+#         def load_geometry(geojson_data):
+#             return shape(ast.literal_eval(geojson_data) )
+        
+#         buildings_df['geometry'] = buildings_df['the_geom'].apply(load_geometry)
+#         buildings_df = buildings_df.dropna(subset=['geometry'])
+
+#         buildings_gdf = gpd.GeoDataFrame(buildings_df,geometry='geometry', crs="EPSG:4362")
+#         filtered_buildings_gdf = buildings_gdf[buildings_gdf.intersects(combined_bbox_polygon)]
+#         filtered_buildings_df = pd.DataFrame(filtered_buildings_gdf)
+#         filtered_buildings_df['the_geom'] = filtered_buildings_gdf.geometry.apply(lambda geom: geom.wkt)
+#         filtered_buildings_df.to_csv(filtered_building_df_filepath, index=False)
+#         print(f"Finished filtering! length of unfiltered: {len(buildings_df)}, length of filtered: {len(filtered_buildings_df)}")
+#         print(f"Filtered buildings results not saved to {filtered_building_df_filepath}; method already run")
+#         return filtered_buildings_df # returns in EPSG:4326
+
 # adds geometry column to buildings_df
 def geom_buildingsdf(buildings_df):
 
