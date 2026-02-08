@@ -1,0 +1,7 @@
+# Jekyll configuration
+theme: jekyll-theme-minimal
+# Tell Jekyll which files to exclude from processing
+exclude:
+  - README.md
+  - "*.py"
+  - "*.R"
