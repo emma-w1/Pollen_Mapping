@@ -7,8 +7,8 @@ from rasterstats import zonal_stats
 import os
 import pandas as pd
 
-manhattan_map = gpd.read_file("/Users/wenggeiwong/Pollen_Mapping/data/redlining_sfs/manh_holc_sf.json", engine="fiona")
-bronx_map = gpd.read_file('/Users/wenggeiwong/Pollen_Mapping/data/redlining_sfs/brx_holc_sf.json', engine="fiona")
+manhattan_map = gpd.read_file("/Users/wenggeiwong/pollen_mapping_data/redlining_sfs/manh_holc_sf.json", engine="fiona")
+bronx_map = gpd.read_file('/Users/wenggeiwong/pollen_mapping_data/redlining_sfs/brx_holc_sf.json', engine="fiona")
 
 
 def find_year(raster):
@@ -22,18 +22,41 @@ def find_year(raster):
     
 def find_pollutant(raster):
     filename = os.path.basename(raster)
-    pollutant = filename.split("_")[-1]
+    pollutant = filename.split("_")[-1] 
     pollutant = pollutant.replace("300m","").upper()
     if pollutant == "PM":
         pollutant = "PM2.5"
     return pollutant
 
+def find_pollen(raster):
+    filename = os.path.basename(raster)
+    pollen_type = filename.split("_")
+
+    if pollen_type[2] == "alrg":
+        pollen_type = f"{pollen_type[0]}_{pollen_type[1]}_{pollen_type[2]}"
+    else:
+        pollen_type = f"{pollen_type[0]}_{pollen_type[1]}"
+
+    return pollen_type
+
+def find_borough(raster):
+    filename = os.path.basename(raster)
+    filename = filename.split("_")
+    if(filename[0]=="bronx"):
+        return "bronx"
+    elif(filename[0]=="manhattan"):
+        return "manhattan"
+    else:
+        return ""
+
+
+
 # Create avg. maps
 def joinData(shapefile,raster):
     print("HIIIII")
-    year = find_year(raster)
-    pollutant = find_pollutant(raster)
-    
+    # year = find_year(raster)
+    pollen_type = find_pollen(raster)    
+
     with rasterio.open(raster) as src:
         data = src.read(1).astype("float32")  # Convert to float
         profile = src.profile
@@ -69,27 +92,27 @@ def joinData(shapefile,raster):
 
     # Stats df to export as csv later
     dict_stats = {"zone_id": zone_id_list,
-                  "mean_pollen": mean_list,
-                  "median_pollen": median_list,
-                  "max_pollen": max_list,
-                  "min_pollen": min_list,
-                  "std_pollen": std_list,
-                  "range_pollen": range_list,
-                  "sum_pollen": sum_list}
+                  "mean": mean_list,
+                  "median": median_list,
+                  "max": max_list,
+                  "min": min_list,
+                  "std": std_list,
+                  "range": range_list,
+                  "sum": sum_list}
     
     df_stats = pd.DataFrame(dict_stats)
     print(df_stats)
 
-    gdf["pollution_mean"] = mean_list
-    gdf["pollution_median"] = median_list
-    gdf["pollution_max"] = max_list
-    gdf["pollution_min"] = min_list
+    gdf["mean"] = mean_list
+    gdf["median"] = median_list
+    gdf["max"] = max_list
+    gdf["min"] = min_list
 
     for i, stat in enumerate(stats):
         for key, value in stat.items():
-            gdf.loc[i, f"pollution_{key}"] = value
+            gdf.loc[i, f"pollen_{key}"] = value
 
-    summary = gdf.groupby("grade")["pollution_mean"].mean()
+    summary = gdf.groupby("grade")["mean"].mean()
     print(summary)
 
 
@@ -100,7 +123,7 @@ def joinData(shapefile,raster):
     fig, ax = plt.subplots(figsize=(10, 10))
 
     gdf.plot(
-        column="pollution_mean",
+        column="mean",
         cmap="OrRd",
         linewidth=0.3,
         edgecolor="black",
@@ -111,14 +134,14 @@ def joinData(shapefile,raster):
         ax.text(
             row.label_point.x,
             row.label_point.y,
-            row["label"],   # ← THIS comes from properties.grade
+            row["label"],   
             ha="center",
             va="center",
             fontsize=5,
             weight="bold"
         )
 
-    ax.set_title(f"Mean {pollutant} Levels by HOLC District (NYC)", fontsize=16)
+    ax.set_title(f"Mean {pollen_type} Levels by HOLC District (NYC)", fontsize=16)
     ax.axis("off")
 
     # Change to include other boroughs later
@@ -127,11 +150,11 @@ def joinData(shapefile,raster):
     elif shapefile.equals(bronx_map):
         map_borough = "bronx"
 
-    base_folder = "/Users/wenggeiwong/Pollen_Mapping/figures"
+    base_folder = "/Users/wenggeiwong/Pollen_Mapping/misc/figures"
     output_folder = os.path.join(base_folder, f"{map_borough}_figures")
     os.makedirs(output_folder, exist_ok=True)
     # Save to folder
-    filename = f"mean_{pollutant}_{year}_{map_borough}.png"
+    filename = f"mean_{pollen_type}_{map_borough}.png"
     names_in_folder = os.listdir(output_folder)
     if filename not in names_in_folder:
         fig.savefig(
@@ -144,11 +167,11 @@ def joinData(shapefile,raster):
 
     # Export csv files for statistical analysis
 
-    base_folder = "/Users/wenggeiwong/Pollen_Mapping/data/joined_data"
+    base_folder = "/Users/wenggeiwong/pollen_mapping_data/joined_data"
     output_folder = os.path.join(base_folder, f"{map_borough}_data")
     os.makedirs(output_folder, exist_ok=True)
 
-    filename = f"{pollutant}_{year}_{map_borough}.csv"    
+    filename = f"{pollen_type}_{map_borough}.csv"    
     names_in_folder = os.listdir(output_folder)
     if filename not in names_in_folder:
         df_stats.to_csv(
@@ -157,13 +180,22 @@ def joinData(shapefile,raster):
 
 
 def exportData():
-    for file_entry in os.scandir('/Users/wenggeiwong/Pollen_Mapping/data/nyccas_data'):
-        print(os.path.basename(file_entry))
-        if not os.path.basename(file_entry).startswith("."):
-            joinData(manhattan_map,file_entry.path)
-            print("Manhattan export for " + os.path.basename(file_entry) + " complete")
-            joinData(bronx_map,file_entry.path)
-            print("Bronx export for " + os.path.basename(file_entry) + " complete")
+    for file_entry in os.scandir('/Users/wenggeiwong/pollen_mapping_data/rasters/pollen_prediction_rasters'):
+        filepath = os.path.basename(file_entry)
+        print(filepath)
+        borough = find_borough(filepath)
+        if not filepath.startswith("."):
+            if(borough==""):
+                joinData(manhattan_map,file_entry.path)
+                print("Manhattan export for " + filepath + " complete")
+                joinData(bronx_map,file_entry.path)
+                print("Bronx export for " + filepath + " complete")
+            elif(borough=="bronx"):
+                joinData(bronx_map,file_entry.path)
+                print("Bronx export for " + filepath + " complete")
+            elif(borough=="manhattan"):
+                joinData(manhattan_map,file_entry.path)
+                print("Manhattan export for " + filepath + " complete")
 
 exportData()
 print("DONE RUNNING!!!!")
