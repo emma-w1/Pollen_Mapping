@@ -119,12 +119,12 @@ welchs_anova_pos_hoc_required <- function(df_welchs_anova){
 
 games_howell_test <- function(general_df,title_label){
   games_howell_result <- games_howell_test(general_df, mean_pollen~zone)
-  write.csv(games_howell_result,file=glue("/Users/wenggeiwong/Pollen_Mapping/nyccas_results/welchs_anova_results/games_howell_results/games_howell_tests_{title_label}.csv"))
+  write.csv(games_howell_result,file=glue("/Users/wenggeiwong/Pollen_Mapping/stats_results/welchs_anova_results/games_howell_results/games_howell_tests_{title_label}.csv"))
   print("Games-Howell Test Complete")
 }
 
 main <- function(){
-  filepath1 <- "/Users/wenggeiwong/Pollen_Mapping/data/joined_data/bronx_data/O3_2023_bronx.csv"
+  filepath1 <- "/Users/wenggeiwong/pollen_mapping_data/joined_data/bronx_data/bronx_Influx_trees_alrg_bronx.csv"
   label <- get_file_label(filepath1)
   general_df <- group_by_zone(filepath1)
   is_normal <- shapiro_wilk_test(general_df)

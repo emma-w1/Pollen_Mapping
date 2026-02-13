@@ -418,23 +418,25 @@ LURToRaster <- function(pollen_type,model,model_type,borough,resolution=10){
 
     # prediction rasters
     print('Hi')
-    tree_canopy50 <- rast(tree_canopy_50m_path_10ft)
+    # tree_canopy50 <- rast(tree_canopy_50m_path_10ft)
     tree_canopy500 <- rast(tree_canopy_500m_path_10ft)
     tree_canopy100 <- rast(tree_canopy_100m_path_10ft)
     elevation <- rast(elevation_min_500m_path)
-    building_1000 <- rast(building_vol_1000m_path)
+    # building_1000 <- rast(building_vol_1000m_path)
+    print("passes")
     
     # variables used based on polynomial cross validation when possible, basic LUR otherwise
     if(model_type == "LUR" && (borough == "" || borough == "bronx")){ # for influx & influx_alrg for all boroughs and for specifically the Bronx, the formula is the same
         predictors <- c(tree_canopy500)
         names(predictors) <- c("tree_canopy_pct_500m")
-    }else if(model_type=="LUR" && borough=="manhattan" && pollen_type == "Influx_trees"){
-        predictors <- c(tree_canopy100,building_1000)
-        names(predictors) <- c("tree_canopy_pct_100m","building_vol_density_1000m")
-    }else if(model_type=="LUR" && borough=="manhattan" && pollen_type == "Influx_trees_alrg"){
-        predictors <- c(building_1000, tree_canopy50)
-        predictors <- c("building_vol_density_1000m","tree_canopy_pct_50m")
-    }
+        print("passes")
+    }# else if(model_type=="LUR" && borough=="manhattan" && pollen_type == "Influx_trees"){
+    #     predictors <- c(tree_canopy100,building_1000)
+    #     names(predictors) <- c("tree_canopy_pct_100m","building_vol_density_1000m")
+    # }else if(model_type=="LUR" && borough=="manhattan" && pollen_type == "Influx_trees_alrg"){
+    #     predictors <- c(building_1000, tree_canopy50)
+    #     predictors <- c("building_vol_density_1000m","tree_canopy_pct_50m")
+    # }
     
     # print("Predictor names:")
     # print(names(predictors))
@@ -459,17 +461,13 @@ LURToRaster <- function(pollen_type,model,model_type,borough,resolution=10){
 # prepare data
 pollen_data <- read.csv("/Users/wenggeiwong/pollen_mapping_data/land_use_data/results.csv",header=TRUE)
 pollen_data <- pollen_data[pollen_data$Borough == "Bronx",]
-col_name <- "Influx_trees" 
+col_name <- "Influx_trees_alrg" 
 log_col_name <- logTransform(col_name)
 removeLogOutliers(log_col_name)
 selected_vars <- selectVars(log_col_name)
 
-# # basic LUR model (USE POLYNOMIAL FOR BRONX & ALL-BOROUGH)
-# basic_model_result <- basicLUR(log_col_name,selected_vars)
-# basic_model <- basic_model_result$model
-# basic_model_formula <- basic_model_result$formula
 
-# basic_raster <- LURToRaster(col_name,basic_model, "LUR", "bronx")
+
 
 # polynomial model w/ k-fold cross verification run when possible; residuals seem to indicate acceptable fit
 cv_results <- crossValidation(log_col_name,selected_vars)
@@ -495,6 +493,7 @@ print(glue("GWR AIC: {gwr_model$results$AICb}"))
 print(glue("LUR AIC: {AIC(lur_model)}"))
 print(glue("Lag AIC: {AIC(lag_model)}"))
 
+raster <- LURToRaster(col_name,lur_model, "LUR", "bronx")
 
 # check residuals
 # residualChecks(basic_model,basic_model_formula)

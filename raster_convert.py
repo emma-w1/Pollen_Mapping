@@ -32,12 +32,13 @@ def find_pollen(raster):
     filename = os.path.basename(raster)
     pollen_type = filename.split("_")
 
-    if pollen_type[2] == "alrg":
-        pollen_type = f"{pollen_type[0]}_{pollen_type[1]}_{pollen_type[2]}"
+    if "alrg" in pollen_type:
+        index = pollen_type.index("alrg")
+        type = pollen_type[:index+1]
     else:
-        pollen_type = f"{pollen_type[0]}_{pollen_type[1]}"
-
-    return pollen_type
+        index = pollen_type.index("trees")
+        type = pollen_type[:index+1]
+    return "_".join(type)
 
 def find_borough(raster):
     filename = os.path.basename(raster)
@@ -178,6 +179,7 @@ def joinData(shapefile,raster):
             os.path.join(output_folder,filename)
         )
 
+rasters = ["/Users/wenggeiwong/pollen_mapping_data/rasters/pollen_prediction_rasters/bronx_Influx_trees_LUR.tif","/Users/wenggeiwong/pollen_mapping_data/rasters/pollen_prediction_rasters/bronx_Influx_trees_alrg_LUR.tif"]
 
 def exportData():
     for file_entry in os.scandir('/Users/wenggeiwong/pollen_mapping_data/rasters/pollen_prediction_rasters'):
