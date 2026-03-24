@@ -2,6 +2,10 @@ import requests
 import pandas as pd
 import time
 import string
+from geopy.geocoders import Nominatim
+import json
+import ast
+
 
 url = "https://npiregistry.cms.hhs.gov/api"
 
@@ -155,23 +159,54 @@ def remove_duplicates(providers):
             seen.add(npi)
             filtered.append(provider)
     print(f"before filtering: {len(providers)}, after filtering: {len(filtered)}")
+    filtered = pd.json_normalize(filtered)
+    filtered = filtered[["addresses","number","taxonomies"]]
     return filtered
 
-def save_results(filepath, filtered_providers):
-    final_df = pd.json_normalize(filtered_providers)
-    final_df.to_csv(filepath, index=False)
+
+
+def address_to_coordinate(df):
+    geolocator = Nominatim(user_agent="my_app")
+    address_df = {"Address":[]}
+
+    for row in df.iterrows():
+        address_col = ast.literal_eval((row)[1]["addresses"])
+        print((address_col))
+        address = f"{address_col[0]['address_1']}, Bronx, NY"
+        address_df["Address"].append(address)
+    
+    address_df = pd.DataFrame(address_df)
+
+    print(address_df)
+
+    def geocode_address(row):
+        time.sleep(1)
+        try:
+            location = geolocator.geocode(row["Address"])
+            return pd.Series([location.latitude,location.longitude]) if location else [None,None]
+        except Exception as e:
+            print(f"Error when geocoding addresses: {e}")
+            return [None,None]
+    
+    address_df[["lat","lon"]] = address_df.apply(geocode_address, axis=1)
+
+    return address_df
+
+
+
+
+
 
 if __name__ == "__main__":
-    physician_filepath = "/Users/wenggeiwong/Pollen_Mapping/physicians.csv"
     clinic_filepath = "/Users/wenggeiwong/Pollen_Mapping/clinics.csv"
+    clinic_coords_filepath = "/Users/wenggeiwong/Pollen_Mapping/clinic_coords.csv"
 
-    # all_physicians = fetch_providers(bronx_zip_codes,physician_taxonomy_codes)
-    # filtered_physicians = remove_duplicates(all_physicians)
+    all_clinics = pd.read_csv("clinics.csv") #fetch_providers(bronx_zip_codes, clinic_taxonomy_codes)
+    clinic_coords = address_to_coordinate(all_clinics)
+    print(clinic_coords)
 
-    all_clinics = fetch_providers(bronx_zip_codes, clinic_taxonomy_codes)
-    filtered_clinics = remove_duplicates(all_clinics)
+    # clinic_coords.to_csv(clinic_coords_filepath) # manually input null values (due to floor, apt #, etc.)
 
-    # save_results(physician_filepath, filtered_physicians)
-    save_results(clinic_filepath,filtered_clinics)
+
 
 
