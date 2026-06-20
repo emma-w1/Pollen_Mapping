@@ -22,7 +22,7 @@ options(scipen = 999)
 
 
 levene_test <- function(general_df){ # checks if variances in groups are similar
-  levene_result <- leveneTest(mean_pollen ~ zone, data = general_df)
+  levene_result <- leveneTest(mean~ zone, data = general_df)
   levene_df = as.data.frame(levene_result)
   levene_pval = levene_df["group","Pr(>F)"]
   
@@ -55,7 +55,7 @@ get_file_label <- function(filepath){
 }
 
 shapiro_wilk_test <- function(general_df){ #determines if normal
-  shapiro_result <- shapiro.test(general_df$mean_pollen)
+  shapiro_result <- shapiro.test(general_df$mean)
   shapiro_pval <- shapiro_result[[2]]
   if(shapiro_pval <= 0.05){ 
     print(glue("Shapiro-Wilk: Distribution of data is not normal with p-value of {shapiro_pval}"))
@@ -68,7 +68,7 @@ shapiro_wilk_test <- function(general_df){ #determines if normal
 
 anova_test <- function(df,title_label){ # this is specifically based on mean
   
-  anova_result <- aov(mean_pollen~zone,data=df)
+  anova_result <- aov(mean~zone,data=df)
   anova_df <- as.data.frame(summary(anova_result)[[1]])
   
   write.csv(anova_df,file=glue("/Users/wenggeiwong/Pollen_Mapping/nyccas_results/anova_results/anova_test_{title_label}.csv"))
@@ -99,7 +99,7 @@ tukey_test <- function(anova_result,title_label){
 }
 
 welchs_anova_test <- function(general_df,title_label){
-  welchs_anova_result <- oneway.test(mean_pollen ~ zone, data = general_df, var.equal = FALSE)
+  welchs_anova_result <- oneway.test(mean ~ zone, data = general_df, var.equal = FALSE)
   welchs_anova_df <- tidy(welchs_anova_result)
   welchs_anova_df$method <- NULL
   write.csv(welchs_anova_df,file=glue("/Users/wenggeiwong/Pollen_Mapping/nyccas_results/welchs_anova_results/welchs_anova_test_{title_label}.csv"))
@@ -118,7 +118,7 @@ welchs_anova_pos_hoc_required <- function(df_welchs_anova){
 }
 
 games_howell_test <- function(general_df,title_label){
-  games_howell_result <- games_howell_test(general_df, mean_pollen~zone)
+  games_howell_result <- games_howell_test(general_df, mean~zone)
   write.csv(games_howell_result,file=glue("/Users/wenggeiwong/Pollen_Mapping/stats_results/welchs_anova_results/games_howell_results/games_howell_tests_{title_label}.csv"))
   print("Games-Howell Test Complete")
 }
@@ -129,7 +129,6 @@ main <- function(){
   general_df <- group_by_zone(filepath1)
   is_normal <- shapiro_wilk_test(general_df)
   similar_intra_variance <- levene_test(general_df)
-  welchs_anova_test(general_df,label)
   if(similar_intra_variance){
     # anova
     result_anova <- anova_test(general_df,label)

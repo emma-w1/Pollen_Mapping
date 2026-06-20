@@ -210,3 +210,9 @@ if __name__ == "__main__":
 
 
 
+
+
+# pages 1528-1532, 1512-1518, 1322-1323, 32-39 | 482-485, 833 (providers) 
+# https://www.uhc.com/communityplan/assets/plandocuments/providerdirectory/NY-Medicaid-Provider-Directory-Bronx.pdf#page=27.10, https://www.uhc.com/communityplan/new-york/plans/medicaid/medicaid-uhc-community-plan/find-a-provider-or-pharmacy
+# https://metroplus.org/search-providers/ai-search
+# https://health.data.ny.gov/Health/Health-Facility-General-Information/vn5v-hh5r/explore/query/SELECT%0A%20%20%60fac_id%60%2C%0A%20%20%60facility_name%60%2C%0A%20%20%60fac_desc_short%60%2C%0A%20%20%60description%60%2C%0A%20%20%60fac_opn_dat%60%2C%0A%20%20%60address1%60%2C%0A%20%20%60address2%60%2C%0A%20%20%60city%60%2C%0A%20%20%60state%60%2C%0A%20%20%60fac_zip%60%2C%0A%20%20%60fac_phone%60%2C%0A%20%20%60fac_fax%60%2C%0A%20%20%60web_site%60%2C%0A%20%20%60cnty_cd%60%2C%0A%20%20%60county%60%2C%0A%20%20%60ro_id%60%2C%0A%20%20%60region_office%60%2C%0A%20%20%60main_site_name%60%2C%0A%20%20%60main_site_facid%60%2C%0A%20%20%60opcert_num%60%2C%0A%20%20%60operator_name%60%2C%0A%20%20%60operator_address1%60%2C%0A%20%20%60operator_address2%60%2C%0A%20%20%60operator_city%60%2C%0A%20%20%60operator_state%60%2C%0A%20%20%60operator_zip%60%2C%0A%20%20%60cooperator_name%60%2C%0A%20%20%60cooperator_address1%60%2C%0A%20%20%60cooperator_address_2%60%2C%0A%20%20%60cooperator_city%60%2C%0A%20%20%60cooperator_state%60%2C%0A%20%20%60cooperator_zip%60%2C%0A%20%20%60ownership_type%60%2C%0A%20%20%60latitude%60%2C%0A%20%20%60longitude%60%2C%0A%20%20%60facility_location%60%0AWHERE%20caseless_one_of%28%60city%60%2C%20%22Bronx%22%29/page/filter
