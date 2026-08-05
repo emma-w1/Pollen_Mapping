@@ -9,6 +9,7 @@ import pandas as pd
 
 manhattan_map = gpd.read_file("/Users/wenggeiwong/pollen_mapping_data/redlining_sfs/manh_holc_sf.json", engine="fiona")
 bronx_map = gpd.read_file('/Users/wenggeiwong/pollen_mapping_data/redlining_sfs/brx_holc_sf.json', engine="fiona")
+brooklyn_map = gpd.read_file('/Users/wenggeiwong/pollen_mapping_data/redlining_sfs/bkln_holc_sf.json', engine='fiona')
 
 
 def find_year(raster):
@@ -150,6 +151,8 @@ def joinData(shapefile,raster):
         map_borough = "manhattan"
     elif shapefile.equals(bronx_map):
         map_borough = "bronx"
+    else:
+        map_borough= "brooklyn"
 
     base_folder = "/Users/wenggeiwong/Pollen_Mapping/misc/figures"
     output_folder = os.path.join(base_folder, f"{map_borough}_figures")
@@ -199,5 +202,9 @@ def exportData():
                 joinData(manhattan_map,file_entry.path)
                 print("Manhattan export for " + filepath + " complete")
 
-exportData()
+# exportData()
+
+joinData(brooklyn_map,'/Users/wenggeiwong/pollen_mapping_data/rasters/pollen_prediction_rasters/Influx_trees_alrg_LUR_.tif')
+joinData(brooklyn_map,'/Users/wenggeiwong/pollen_mapping_data/rasters/pollen_prediction_rasters/Influx_trees_LUR.tif')
+
 print("DONE RUNNING!!!!")

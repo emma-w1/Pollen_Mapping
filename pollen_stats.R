@@ -71,7 +71,7 @@ anova_test <- function(df,title_label){ # this is specifically based on mean
   anova_result <- aov(mean~zone,data=df)
   anova_df <- as.data.frame(summary(anova_result)[[1]])
   
-  write.csv(anova_df,file=glue("/Users/wenggeiwong/Pollen_Mapping/nyccas_results/anova_results/anova_test_{title_label}.csv"))
+  write.csv(anova_df,file=glue("/Users/wenggeiwong/pollen_mapping_data/pollen_stats_results/anova_test_{title_label}.csv"))
 
   return(anova_result)
 }
@@ -91,22 +91,21 @@ anova_post_hoc_required <- function(df_anova){
 tukey_test <- function(anova_result,title_label){
   tukey_result <- TukeyHSD(anova_result)
   tukey_df <- as.data.frame(tukey_result$zone)
-  png(file=glue("/Users/wenggeiwong/Pollen_Mapping/nyccas_results/anova_results/tukey_results/bronx_tukey_results/bronx_tukey_plots/tukey_plot_{title_label}.png"))
+  png(file=glue("/Users/wenggeiwong/pollen_mapping_data/pollen_stats_results/tukey_plot_{title_label}.png"))
   plot(tukey_result) 
   dev.off()
-  write.csv(tukey_df,file=glue("/Users/wenggeiwong/Pollen_Mapping/nyccas_results/anova_results/tukey_results/tukey_test_{title_label}.csv"))
+  write.csv(tukey_df,file=glue("/Users/wenggeiwong/pollen_mapping_data/pollen_stats_results/tukey_test_{title_label}.csv"))
   print("Tukey Test Complete:")
 }
 
 welchs_anova_test <- function(general_df,title_label){
   welchs_anova_result <- oneway.test(mean ~ zone, data = general_df, var.equal = FALSE)
   welchs_anova_df <- tidy(welchs_anova_result)
-  welchs_anova_df$method <- NULL
-  write.csv(welchs_anova_df,file=glue("/Users/wenggeiwong/Pollen_Mapping/nyccas_results/welchs_anova_results/welchs_anova_test_{title_label}.csv"))
+  write.csv(welchs_anova_df,file=glue("/Users/wenggeiwong/pollen_mapping_data/pollen_stats_results/welchs_anova_test_{title_label}.csv"))
   return(welchs_anova_result)
 }
 
-welchs_anova_pos_hoc_required <- function(df_welchs_anova){
+welchs_anova_post_hoc_required <- function(df_welchs_anova){
   welchs_anova_pval <- df_welchs_anova[1,"p.value"]
   if(welchs_anova_pval <= 0.05){
     print(glue("Welch's ANOVA: Further post-hoc testing required w/ Welch's ANOVA p-val of {welchs_anova_pval}"))
@@ -118,10 +117,12 @@ welchs_anova_pos_hoc_required <- function(df_welchs_anova){
 }
 
 games_howell_test <- function(general_df,title_label){
-  games_howell_result <- games_howell_test(general_df, mean~zone)
-  write.csv(games_howell_result,file=glue("/Users/wenggeiwong/Pollen_Mapping/stats_results/welchs_anova_results/games_howell_results/games_howell_tests_{title_label}.csv"))
+  games_howell_result <- rstatix::games_howell_test(general_df, mean~zone)
+  write.csv(games_howell_result,file=glue("/Users/wenggeiwong/pollen_mapping_data/pollen_stats_results/games_howell_tests_{title_label}.csv"))
   print("Games-Howell Test Complete")
 }
+
+
 
 main <- function(){
   filepath1 <- "/Users/wenggeiwong/pollen_mapping_data/joined_data/bronx_data/bronx_Influx_trees_alrg_bronx.csv"
@@ -138,9 +139,7 @@ main <- function(){
       tukey_test(result_anova,label)
     }
   }else{
-    if(is_normal){
       # welch's anova implementation 
-      result_welchs_anova <- welchs_anova_test(general_df,label)
       welchs_anova_result <- welchs_anova_test(general_df,label)
       welchs_anova_df <- tidy(welchs_anova_result)
       welchs_anova_df$method <- NULL
@@ -149,10 +148,6 @@ main <- function(){
       if(is_post_hoc_welchs_anova){
         games_howell_test(general_df,label)
       }
-    }else{
-      # kruskal-wallis implementation
-      # if significant, dunn test for post-hoc
-    }
   }
   
   print("Complete!!!")
@@ -175,3 +170,4 @@ anova_for_folder <- function(folder_path){ # checks if anova is valid for whole 
     }
   }
 }
+
